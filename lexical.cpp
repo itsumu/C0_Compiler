@@ -28,9 +28,6 @@ int stringLength = 0;
 int charPtr = 0;
 int linePtr = 1;
 
-
-
-// Set up reserved words
 void setup() {
 
     // Keyword strings
@@ -81,10 +78,10 @@ void fatal(){}
 // Store one source code line into line[] and store one char into ch
 void nextch() {
     if (charPtr == lineLength) {
-        if (inputFile.eof()) { 
+        if (inputFile.eof()) {
             cout << endl;
-            cout << "program incomplete" << endl;
-            return;
+            cout << "Compiling finished." << endl;
+            exit(0);
         }
 //        if (errpos != 0) {
 //            if (skipFlag) endskip;
@@ -96,13 +93,13 @@ void nextch() {
         charPtr = 0;
         linePtr++; // New line entered
         char tempChar;
-        while (inputFile.peek() != '\n') { // 仍需增加一行字符的长度越界判断
+        while (inputFile.peek() != '\n' && inputFile.peek() != EOF) { // 仍需增加一行字符的长度越界判断
             tempChar = inputFile.get();
 //            cout << tempChar << endl;
             line[lineLength] = tempChar;
             lineLength++;
         }
-        line[lineLength] = inputFile.get(); // Get '\n'
+        line[lineLength] = inputFile.get(); // Get '\n' or EOF
         lineLength++;
         line[lineLength] = '\0';
 //        cout << endl;
@@ -220,6 +217,7 @@ void insymbol() {
                 sy = charcon;
                 inum = 0;
             } else { // Probable character
+                inum = ch; // Store ch for probable output
                 nextch();
                 if (ch != '\''){ // Characters more than one
                     errorFlag = true;
@@ -229,8 +227,7 @@ void insymbol() {
                     while (ch != '\'' && ch != '\n') nextch(); // End till '\n' or '
                     return;
                 } else { // Correct character
-                    sy = charcon;
-                    inum = ch;
+                    sy = charcon; // inum is already set before
                 }
             }
         }
@@ -273,6 +270,9 @@ void insymbol() {
         ch == '}' || ch == ',' || ch == ';' || ch == ':') { // Symbols with single letter
         sy = specialSymbols[ch];
         nextch();
+    } else if (ch == EOF) {
+        printf("Compiling finished.");
+        exit(0);
     } else {
         error(9); // Illegal character head
         nextch();

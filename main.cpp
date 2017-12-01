@@ -21,7 +21,7 @@ char* symbolNames[] = {
 int main(int argc, char* argv[]) {
     setup();
     inputFile.open(argv[1], ios::in);
-    int outputCount = 1;
+    /*int outputCount = 1;
     while (true) {
         insymbol();
         cout << outputCount << " ";
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
                 break;
             }
             case charcon: {
-                cout << symbolNames[sy]  << " \'" << inum << "\'" << endl;
+                cout << symbolNames[sy]  << " \'" << char(inum) << "\'" << endl;
                 break;
             }
             case stringcon: {
@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
                 break;
             default: cout << "Error occurred." << endl;
         }
-    }
+    }*/
+    program();
     return 0;
 }
