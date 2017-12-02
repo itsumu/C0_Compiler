@@ -32,7 +32,7 @@ void program() {
         constState();
     }
 
-    if (sy == intsy || sy == charsy) { // Variable statements
+    if (sy == intsy || sy == charsy) { // Variable statements or definition of function with return
         int tempCharPtr = charPtr; // Store current charPtr for later recovering
         char tempCh = ch;
         symbol tempSy = sy;
@@ -68,6 +68,9 @@ void program() {
             symbol tempSy = sy;
             insymbol();
             if (sy == identi && sy != mainsy) { // General functions
+                charPtr = tempCharPtr;
+                ch = tempCh;
+                sy = tempSy;
                 funcWithoutRetDef();
             } else if (sy == mainsy) { // Main
                 charPtr = tempCharPtr;
@@ -86,8 +89,6 @@ void program() {
     } else {
         //error(); // Unallowed syntax in program
     }
-
-    cout << "This is a program." << endl;
 }
 
 // ＜常量说明＞ ::=  const＜常量定义＞;{ const＜常量定义＞;}
@@ -96,12 +97,12 @@ void constState() {
         insymbol();
         constDef();
         if (sy == semicolon) {
+            cout << "This is a const statement." << endl;
             insymbol();
         } else {
             //error(); // Semicolon lost
         }
     }
-    cout << "This is a const statement." << endl;
 }
 
 /* ＜常量定义＞ ::=   int＜标识符＞＝＜整数＞{,＜标识符＞＝＜整数＞}
@@ -144,7 +145,6 @@ void constDef() {
     } else {
         // error(); // Const definition type error
     }
-    insymbol();
 }
 
 // ＜变量说明＞ ::= ＜变量定义＞;{＜变量定义＞;}
@@ -157,7 +157,7 @@ void varState() {
             //error(); // Semicolon lost
         }
     } while (sy == intsy || sy == charsy);
-    cout << "This is a variable statement." << endl;
+    cout << "This is a variable declaration statement." << endl;
 }
 
 // ＜变量定义＞ ::= ＜类型标识符＞(＜标识符＞|＜标识符＞‘[’＜无符号整数＞‘]’){,＜标识符＞|＜标识符＞‘[’＜无符号整数＞‘]’}
@@ -237,11 +237,11 @@ void funcWithRetDef() {
     }
     complexState(); // Manage complex statement
     if (sy == rbrace) {
+        cout << "This is a definition of function with return." << endl;
         insymbol();
     } else {
         //error(); // Right brace lost
     }
-    cout << "This is a definition of function with return." << endl;
 }
 
 // ＜无返回值函数定义＞ ::= void＜标识符＞‘(’＜参数＞|＜空＞‘)’‘{’＜复合语句＞‘}’
@@ -278,11 +278,11 @@ void funcWithoutRetDef() {
     }
     complexState(); // Manage complex statement
     if (sy == rbrace) {
+        cout << "This is a definition of function without return." << endl;
         insymbol();
     } else {
         //error(); // Right brace lost
     }
-    cout << "This is a definition of function without return." << endl;
 }
 
 // ＜声明头部＞ ::=  int＜标识符＞ |char＜标识符＞
@@ -361,7 +361,6 @@ void mainDef() {
     } else {
         //error(); // Left parenthesis lost
     }
-    parameter(); // Manage parameter
     if (sy == rparent) {
         insymbol();
     } else {
@@ -374,11 +373,11 @@ void mainDef() {
     }
     complexState(); // Manage complex statement
     if (sy == rbrace) {
+        cout << "This is the main function." << endl;
         insymbol();
     } else {
         //error(); // Right brace lost
     }
-    cout << "This is the main function." << endl;
 }
 
 // ＜因子＞ ::= ＜标识符＞｜＜标识符＞‘[’＜表达式＞‘]’｜＜整数＞|＜字符＞｜＜有返回值函数调用语句＞|‘(’＜表达式＞‘)’
@@ -466,6 +465,7 @@ void assignState() {
     if (sy == becomes) { // General variable
         insymbol();
         expression();
+        cout << "This is an assignment statement." << endl;
     } else if (sy == lbrack) { // Array
         insymbol();
         expression();
@@ -480,6 +480,7 @@ void assignState() {
             //error(); // Becomes symbol or left bracket lost
         }
         expression();
+        cout << "This is an assignment statement." << endl;
     } else {
         //error(); // Becomes symbol or left bracket lost
     }
@@ -509,7 +510,7 @@ void ifState() {
         insymbol();
         statement();
     }
-    cout << "This is a if statement." << endl;
+    cout << "This is an if statement." << endl;
 }
 
 // ＜条件＞ ::= ＜表达式＞＜关系运算符＞＜表达式＞｜＜表达式＞
@@ -619,12 +620,11 @@ void conditionState() {
     conditionTable();
     conditionDefault();
     if (sy == rbrace) {
+        cout << "This is a condition statement." << endl;
         insymbol();
     } else {
         //error(); // Right brace lost
     }
-
-    cout << "This is a condition statement." << endl;
 }
 
 // ＜情况表＞ ::= ＜情况子语句＞{＜情况子语句＞}
@@ -746,12 +746,15 @@ void returnState() {
         insymbol();
         expression();
         if (sy == rparent) {
+            cout << "This is a return statement." << endl;
             insymbol();
         } else {
             //error(); // Right parenthesis lost
         }
+    } else {
+        cout << "This is a return statement." << endl;
     }
-    cout << "This is a return statement." << endl;
+
 }
 
 // ＜读语句＞ ::= scanf ‘(’＜标识符＞{,＜标识符＞}‘)’
@@ -781,11 +784,11 @@ void scanfState() {
     }
 
     if (sy == rparent) {
+        cout << "This is a scanf statement." << endl;
         insymbol();
     } else {
         //error(); // Right parenthesis lost
     }
-    cout << "This is a scanf statement." << endl;
 }
 
 // ＜写语句＞ ::= printf ‘(’ ＜字符串＞,＜表达式＞ ‘)’| printf ‘(’＜字符串＞‘)’| printf ‘(’＜表达式＞‘)’
@@ -810,11 +813,11 @@ void printfState() {
         expression();
     }
     if (sy == rparent) {
+        cout << "This is a printf statement." << endl;
         insymbol();
     } else {
         //error(); // Right prenthesis lost
     }
-    cout << "This is a printf statement." << endl;
 }
 
 /* <语句> ::= ＜条件语句＞｜＜循环语句＞| ‘{’＜语句列＞‘}’｜＜有返回值函数调用语句＞;
@@ -828,9 +831,16 @@ void statement() {
         case forsy:
             loopState();
             break;
-        case lbrace:
+        case lbrace: {
+            insymbol();
             stateList();
+            if (sy == rbrace){
+                insymbol();
+            } else {
+                //error(); // Right brace lost
+            }
             break;
+        }
         case identi: {
             int tempCharPtr = charPtr;
             char tempCh = ch;
