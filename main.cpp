@@ -1,4 +1,7 @@
 #include "main.h"
+
+#define specials '+', '-', '*', '/', '(', ')', '[', ']', '{', '}', ',', ';', ':'
+
 char* symbolNames[] = {
     "Ident",
     "Const",
@@ -18,9 +21,60 @@ char* symbolNames[] = {
     "Return"
 };
 
+void setup() {
+    // File initialization
+    infixFile.open("infixes.txt", ios::out);
+    // Table initialization
+    idTable.reserve(10000);
+    staticTable.reserve(10000);
+    infixTable.reserve(10000);
+
+    // Keyword strings
+    char* keywordList[] = {
+            "const",
+            "int",
+            "char",
+            "void",
+            "if",
+            "else",
+            "switch",
+            "case",
+            "default",
+            "for",
+            "scanf",
+            "printf",
+            "main",
+            "return"
+    };
+    for (int i = 0; i < keywordCount; i++) {
+        strcpy(keywords[i], keywordList[i]);
+    }
+
+    // Keyword symbols
+    symbol keySymbolList[] = {
+            constsy, intsy, charsy, voidsy, ifsy, elsesy, switchsy, casesy, defaultsy, forsy,
+            scanfsy, printfsy, mainsy, returnsy
+    };
+    for (int i = 0; i < keywordCount; i++) {
+        keySymbols[i] = keySymbolList[i];
+    }
+
+    // Special symbols
+    char specialSymbolsChar[] = {
+            specials
+    };
+    symbol specialSymbolList[] = {
+            plus, minus, times, idiv, lparent, rparent, lbrack, rbrack, lbrace, rbrace,
+            comma, semicolon, colon
+    };
+    for (int i = 0; i < sizeof(specialSymbolList) / sizeof(specialSymbolList[0]); i++) {
+        specialSymbols[specialSymbolsChar[i]] = specialSymbolList[i];
+    }
+}
+
 int main(int argc, char* argv[]) {
     setup();
-    inputFile.open(argv[1], ios::in);
+    inputFile.open("test.txt", ios::in);
     /*int outputCount = 1;
     while (true) {
         insymbol();

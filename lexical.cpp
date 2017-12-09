@@ -5,9 +5,8 @@
 
 #define isLetter(a) (a >= 'a' && a <= 'z' || a >= 'A' && a <= 'Z' || a =='_')
 #define isMyAscii(a) (a == 32 || a == 33 || a >= 35 && a <= 126)
-#define specials '+', '-', '*', '/', '(', ')', '[', ']', '{', '}', ',', ';', ':'
 
-const int maxStrLength = 50;
+const int maxStrLength = 1000;
 
 char ch = ' ';
 alpha token;
@@ -20,58 +19,12 @@ bool skipFlag = false, errorFlag = false;
 alpha keywords[keywordCount];
 symbol keySymbols[keywordCount];
 map<char, symbol> specialSymbols;
-fstream inputFile, outputFile;
+fstream inputFile, infixFile;
 
 int lineLength = 0;
-int stringLength = 0;
 
 int charPtr = 0;
-int linePtr = 1;
-
-void setup() {
-
-    // Keyword strings
-    char* keywordList[] = {
-       "const     ",
-       "int       ",
-       "char      ",
-       "void      ",
-       "if        ",
-       "else      ",
-       "switch    ",
-       "case      ",
-       "default   ",
-       "for       ",
-       "scanf     ",
-       "printf    ",
-       "main      ",
-       "return    "
-    };
-    for (int i = 0; i < keywordCount; i++) {
-        strcpy(keywords[i], keywordList[i]);
-    }
-
-    // Keyword symbols
-    symbol keySymbolList[] = {
-        constsy, intsy, charsy, voidsy, ifsy, elsesy, switchsy, casesy, defaultsy, forsy,
-        scanfsy, printfsy, mainsy, returnsy
-    };
-    for (int i = 0; i < keywordCount; i++) {
-        keySymbols[i] = keySymbolList[i];
-    }
-
-    // Special symbols
-    char specialSymbolsChar[] = {
-        specials
-    };
-    symbol specialSymbolList[] = {
-        plus, minus, times, idiv, lparent, rparent, lbrack, rbrack, lbrace, rbrace,
-        comma, semicolon, colon
-    };
-    for (int i = 0; i < sizeof(specialSymbolList) / sizeof(specialSymbolList[0]); i++) {
-        specialSymbols[specialSymbolsChar[i]] = specialSymbolList[i];
-    }
-}
+int linePtr = 0;
 
 void fatal(){}
 
@@ -85,10 +38,10 @@ void nextch() {
         }
 //        if (errpos != 0) {
 //            if (skipFlag) endskip;
-//            outputFile << endl;
+//            infixFile << endl;
 //            errpos = 0;
 //        }
-//        write( outputFile, lc: 5, ' '); {* 没有错误执行的操作，在list文件中输出当前PCODE的行号以及一个空格，不换行 *}
+//        write( infixFile, lc: 5, ' '); {* 没有错误执行的操作，在list文件中输出当前PCODE的行号以及一个空格，不换行 *}
         lineLength = 0;
         charPtr = 0;
         linePtr++; // New line entered
@@ -108,10 +61,17 @@ void nextch() {
     charPtr++;
 }
 
-// Clear str's contents
+// Clear str's contents to \0
 void clearStr() {
-    for (int i = 0; i < maxStrLength; ++i) {
+    for (int i = 0; i <= maxStrLength; ++i) {
         str[i] = '\0';
+    }
+}
+
+// Clear token's contents to \0
+void clearToken() {
+    for (int i = 0; i <= maxIdentLength; ++i) {
+        token[i] = '\0';
     }
 }
 
@@ -122,10 +82,7 @@ void insymbol() {
     while (isspace(ch)) nextch();
     if (isLetter(ch)) { // Identifier or keyword
         // Initiate token
-        for (i = 0; i < maxIdentLength; ++i) {
-            token[i] = ' ';
-        }
-        token[i] = '\0';
+        clearToken();
 
         // Read whole alpha into token, token can't be longer than 10 characters
         do {
@@ -271,6 +228,8 @@ void insymbol() {
         sy = specialSymbols[ch];
         nextch();
     } else if (ch == EOF) {
+        printTable();
+        outputInfixes();
         printf("Compiling finished.");
         exit(0);
     } else {

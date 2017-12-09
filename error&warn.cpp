@@ -16,6 +16,14 @@ char* errorMessage[] = {
     "String longer than 50.", // 8
     "Unknown character." // 9
 };
+
+char* warningMessage[] = {
+    "Type conflicts." // 0
+};
 void error(int errorNum) {
     cout << "[Line "<< linePtr << "] Error: " << errorMessage[errorNum] << endl;
+}
+
+void warn(int warnNum) {
+    cout << "[Line "<< linePtr << "] Warning: " << warningMessage[warnNum] << endl;
 }

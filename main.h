@@ -6,22 +6,26 @@
 #define C0_COMPILER_MAIN_H
 
 #include <iostream>
+#include <string>
 #include <fstream>
 #include <map>
 #include <vector>
 #include <cstring>
 #include <cstdlib>
+#include "tools.h"
 
 using std::cin;
 using std::cout;
 using std::endl;
+using std::string;
 using std::ios;
 using std::fstream;
 using std::map;
+using namespace tools;
 
 // Restricts
-const int maxIdentLength = 10;
-const int maxLineLength = 121;
+const int maxIdentLength = 100;
+const int maxLineLength = 100;
 const int keywordCount = 14;
 const int maxDigit = 15;
 const int maxInt = 32767; // 2 ^ 15-1
@@ -47,27 +51,38 @@ typedef enum {
     returnsy // 37
 } symbol; // All C0 reserved words
 typedef enum {
-    ints, chars, voids
-} type; // All C0 types
-typedef enum {
     consts,
     vars,
     params,
     funcs
-} kind; // All C0 kindshttps://sourceforge.net/projects/codeblocks/files/Binaries/13.12/Windows/
+} kind; // All C0 kinds
+typedef enum {
+    ints, chars, voids
+} type; // All C0 types
 typedef struct {
-    //char name[maxIdentLength]; // Identifier
-    kind cls; // Const or variable or function
-    type typ; // Int or char
-    int level; // Block level where elements lies
+    char name[maxIdentLength]; // Identifier
+    kind cls; // Const or variable or parameter or function
+    type typ; // Int or char or void
     int addr;
     int length;
+    int level; // Block level where elements lies
 } tabElement; // Symbol table element
+typedef struct {
+    string ioperator;
+    string operand1;
+    string operand2;
+    string operand3;
+} infixNotation;
 
 // Static elements
 extern alpha keywords[];
 extern symbol keySymbols[];
 extern map<char, symbol> specialSymbols;
+
+// Tables
+extern std::vector<tabElement> idTable;
+extern std::vector<tabElement> staticTable;
+extern std::vector<infixNotation> infixTable;
 
 // Global Variables changing all the way
 extern char line[]; // One source code line
@@ -76,8 +91,8 @@ extern alpha token;
 extern symbol sy;
 extern int inum;
 extern char str[];
-extern std::vector<tabElement> idTable;
-extern fstream inputFile, outputFile;
+extern int level;
+extern fstream inputFile, infixFile;
 
 // Lengths for global variables
 extern int lineLength; // Currently reading line length
@@ -95,6 +110,7 @@ extern bool skipFlag;
 // Functions
     // General actions
 void error(int errorNum); // Output error position & error number
+void warn(int warnNum);
 void setup(); // Set up reserved words
 void emit(); // Emit middle code
 
@@ -103,43 +119,52 @@ void nextch(); // Store one source code line into line[] and store one char into
 void insymbol(); // Read one symbol, sy stores symbol type, inum stores contents
 
     // Table actions
-void insertTable(char name[], kind cls, type typ, int level, int addr, int length);
+void insertTable(kind cls, type typ, const char name[], int length, int level, int addr);
 void popTable();
 int lookUp(char name[]); // Return index of identifier in table
+int lookUpStatic(char name[]);
+bool isDefinable(char name[]);
+int findCurrentFunc();
+void printTable();
 
     // Syntax actions
 void program();
 void constState();
 void constDef();
+void globalVarState();
 void varState();
 void varDef();
 void funcWithRetDef();
 void funcWithoutRetDef();
-void defHead();
+void defHead(type* returnType, char* identifier);
 void parameter();
 void parameterTable();
 void complexState();
 void mainDef();
-void factor();
-void term();
-void expression();
-void emptyState();
+type factor(string &infixString);
+type term(string &infixString);
+type expression(string &infixString);
 void assignState();
 void ifState();
-void judgement(); // Judgement inside if statement
+void judgement(string &infixString); // Judgement inside if statement
 void loopState();
 void conditionState();
-void conditionTable();
-void conditionBranch();
+void conditionTable(type firstType, string switchElement, string endSwitchLabel);
+void conditionBranch(type firstType, string switchElement, string endSwitchLabel);
 void conditionDefault();
-void funcWithRetCall();
+void funcWithRetCall(string &infixString);
 void funcWithoutRetCall();
-void valueParamTable();
+void valueParamTable(int idIndex);
 void returnState();
 void scanfState();
 void printfState();
 void stateList();
 void statement();
-void integer();
+void integer(string &infixString);
+
+// Infix notation actions
+void insertInfix(string ioperator, string operand1, string operand2, string operand3);
+void outputInfixes();
+string createTempVar();
 
 #endif //C0_COMPILER_MAIN_H
