@@ -92,7 +92,7 @@ extern symbol sy;
 extern int inum;
 extern char str[];
 extern int level;
-extern fstream inputFile, infixFile;
+extern fstream inputFile, infixFile, mipsFile;
 
 // Lengths for global variables
 extern int lineLength; // Currently reading line length
@@ -120,9 +120,11 @@ void insymbol(); // Read one symbol, sy stores symbol type, inum stores contents
 
     // Table actions
 void insertTable(kind cls, type typ, const char name[], int length, int level, int addr);
-void popTable();
-int lookUp(char name[]); // Return index of identifier in table
-int lookUpStatic(char name[]);
+void popElement();
+void popLocals();
+int lookUp(const char *name); // Return index of identifier in table
+int lookUpStatic(const char *functionName); // For function
+int lookUpStatic(const char *functionName, const char *identifier); // For local variable or parameter
 bool isDefinable(char name[]);
 int findCurrentFunc();
 void printTable();
@@ -166,5 +168,28 @@ void integer(string &infixString);
 void insertInfix(string ioperator, string operand1, string operand2, string operand3);
 void outputInfixes();
 string createTempVar();
+
+// Target code generations
+void mipsProgram(string mipsFileName);
+void mipsDef();
+void mipsAssign();
+void mipsAdd();
+void mipsSub();
+void mipsMul();
+void mipsDiv();
+void mipsSeq();
+void mipsSne();
+void mipsSlt();
+void mipsSle();
+void mipsSgt();
+void mipsSge();
+void mipsBeq();
+void mipsBne();
+void mipsJ(string label);
+void mipsJal();
+void mipsJr();
+void mipsPrint();
+void mipsScan();
+
 
 #endif //C0_COMPILER_MAIN_H

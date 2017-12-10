@@ -54,32 +54,32 @@ void insertInfix(string ioperator, string operand1, string operand2, string oper
     } else if (ioperator == "GEQ") {
         outputBuff = outputBuff + operand3 + " = " + operand1 + " >= " + operand2 + "\n";
     } else if (ioperator == "PUSH") {
-        outputBuff = outputBuff + "PUSH " + operand3 + "\n";
+        outputBuff = outputBuff + "push " + operand3 + "\n";
     } else if (ioperator == "CALL") {
-        outputBuff = outputBuff + "CALL " + operand3 + "\n";
+        outputBuff = outputBuff + "call " + operand3 + "\n";
     } else if (ioperator == "RETURN") {
-        outputBuff = outputBuff + "RETURN " + operand3 + "\n";
+        outputBuff = outputBuff + "return " + operand3 + "\n";
     } else if (ioperator == "SETARR") {
         outputBuff = outputBuff + operand3 + "[" + operand2 + "] = " + operand1 + "\n";
     } else if (ioperator == "GETARR") {
         outputBuff = outputBuff + operand3 + " = " + operand2 + "[" + operand1 + "]" + "\n";
     } else if (ioperator == "JMP") {
-        outputBuff = outputBuff + "JMP " + operand3 + "\n";
+        outputBuff = outputBuff + "jmp " + operand3 + "\n";
     } else if (ioperator == "BEQ") {
-        outputBuff = outputBuff + "GOTO " + operand3 + ", IF " + operand1 + " == " +
+        outputBuff = outputBuff + "goto " + operand3 + ", if " + operand1 + " == " +
         operand2 + "\n";
     } else if (ioperator == "BNE") {
-        outputBuff = outputBuff + "GOTO " + operand3 + ", IF " + operand1 + " != " +
+        outputBuff = outputBuff + "goto " + operand3 + ", if " + operand1 + " != " +
                      operand2 + "\n";
     } else if (ioperator == "SCANF") {
-        outputBuff = outputBuff + "SCANF " + operand3 + "\n";
+        outputBuff = outputBuff + "scan " + operand3 + "\n";
     } else if (ioperator == "PRINTF") {
         if (operand2 != " " && operand3 != " ") {
-            outputBuff = outputBuff + "PRINTF " + operand2 + ", " + operand3 + "\n";
+            outputBuff = outputBuff + "print " + operand2 + ", " + operand3 + "\n";
         } else if (operand2 != " " && operand3 == " ") {
-            outputBuff = outputBuff + "PRINTF " + operand2 + "\n";
+            outputBuff = outputBuff + "print " + operand2 + "\n";
         } else if (operand2 == " " && operand3 != " ") {
-            outputBuff = outputBuff + "PRINTF " + operand3 + "\n";
+            outputBuff = outputBuff + "print " + operand3 + "\n";
         } else {
             cout << "Can't print nothing!" << endl;
         } // Do nothing

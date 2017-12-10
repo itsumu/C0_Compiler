@@ -77,7 +77,7 @@ void clearToken() {
 
 // Set up reserved words
 void insymbol() {
-    int i, j, k = 0;
+    int k = 0;
 
     while (isspace(ch)) nextch();
     if (isLetter(ch)) { // Identifier or keyword
@@ -231,7 +231,7 @@ void insymbol() {
         printTable();
         outputInfixes();
         printf("Compiling finished.");
-        exit(0);
+        return;
     } else {
         error(9); // Illegal character head
         nextch();

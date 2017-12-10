@@ -357,13 +357,7 @@ void funcWithRetDef() {
     }
 
     // Ending work
-    for (int i = idTable.size() - 1; i >= 0 ; --i) { // Pop local variables from id table
-        if (idTable[i].level != 0) {
-            popTable();
-        } else { // All local variables popped from id table
-            break;
-        }
-    }
+    popLocals();
     level--; // Back to ground
 }
 
@@ -421,13 +415,7 @@ void funcWithoutRetDef() {
     }
 
     // Ending work
-    for (int i = idTable.size() - 1; i >= 0 ; --i) { // Pop local variables from id table
-        if (idTable[i].level != 0) {
-            popTable();
-        } else { // All local variables popped from id table
-            break;
-        }
-    }
+    popLocals();
     level--; // Back to ground
 }
 
@@ -556,6 +544,7 @@ void mainDef() {
     insertInfix("FUNC", " ", "void", "main");
     complexState(); // Manage complex statement
     if (sy == rbrace) {
+        popLocals();
         cout << "This is the main function." << endl;
         insymbol();
     } else {
@@ -907,7 +896,7 @@ void loopState() {
         //error(); // Semicolon lost
     }
     increaseLabel = labelStr + toString(labelIndex);
-    labelIndex;
+    ++labelIndex;
     insertInfix("LABEL", " ", " ", increaseLabel);
     if (sy == identi) {
         if (idIndex == -1) {
@@ -1113,7 +1102,7 @@ void funcWithRetCall(string &infixString) {
     insertInfix("CALL", " ", " ", funcName);
     infixString = createTempVar();
     insertTable(vars, idTable[idIndex].typ, infixString.c_str(), 0, level, 0);
-    insertInfix("ASSIGN", " ", "RET", infixString);
+    insertInfix("ASSIGN", " ", "#RET", infixString);
 }
 
 // ＜无返回值函数调用语句＞ ::= ＜标识符＞‘(’＜值参数表＞|<空>‘)’
@@ -1209,6 +1198,7 @@ void returnState() {
             //error(); // Right parenthesis lost
         }
     } else {
+        insertInfix("RETURN", " ", " ", " "); // Return null
         cout << "This is a return statement." << endl;
     }
 
@@ -1230,6 +1220,7 @@ void scanfState() {
         //error(); // Left parenthesis lost
     }
     if (sy == identi) {
+        idIndex = lookUp(token);
         if (idIndex == -1) {
             //error(); // Identifier is not defined
         } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
@@ -1284,6 +1275,7 @@ void printfState() {
     }
     if (sy == stringcon) { // First two branches
         generalString = str;
+        generalString = "\"" + generalString + "\"";
         insymbol();
         if (sy == comma) { // Optional expression
             insymbol();

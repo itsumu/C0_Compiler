@@ -75,7 +75,12 @@ void setup() {
 int main(int argc, char* argv[]) {
     setup();
     inputFile.open("test.txt", ios::in);
-    /*int outputCount = 1;
+    program();
+    mipsProgram("mipsCode.asm");
+    return 0;
+}
+
+/*int outputCount = 1;
     while (true) {
         insymbol();
         cout << outputCount << " ";
@@ -182,6 +187,3 @@ int main(int argc, char* argv[]) {
             default: cout << "Error occurred." << endl;
         }
     }*/
-    program();
-    return 0;
-}
