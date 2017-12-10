@@ -1323,7 +1323,7 @@ void statement() {
             char tempToken[100];
             strcpy(tempToken, token);
             insymbol();
-            if (sy == becomes) {
+            if (sy == becomes || sy == lbrack) {
                 charPtr = tempCharPtr;
                 ch = tempCh;
                 sy = tempSy;

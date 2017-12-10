@@ -62,7 +62,7 @@ void insertInfix(string ioperator, string operand1, string operand2, string oper
     } else if (ioperator == "SETARR") {
         outputBuff = outputBuff + operand3 + "[" + operand2 + "] = " + operand1 + "\n";
     } else if (ioperator == "GETARR") {
-        outputBuff = outputBuff + operand3 + " = " + operand2 + "[" + operand1 + "]" + "\n";
+        outputBuff = outputBuff + operand3 + " = " + operand1 + "[" + operand2 + "]" + "\n";
     } else if (ioperator == "JMP") {
         outputBuff = outputBuff + "jmp " + operand3 + "\n";
     } else if (ioperator == "BEQ") {

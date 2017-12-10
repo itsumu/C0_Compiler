@@ -302,7 +302,7 @@ void funcContent() {
             insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex3)) { // Array is local
                 op3Offset = getLocalOffset(notation.operand3); // Array head
-                insertCode("sub $t2, $sp, " + toString(op3Offset)); // Merge offset, $t2 reserves array offset
+                insertCode("add $t2, $sp, " + toString(op3Offset)); // Merge offset, $t2 reserves array offset
             } else { // Array is global
                 op3Offset = getGlobalOffset(notation.operand3);
                 insertCode("add $t2, $gp, " + toString(op3Offset));
@@ -315,12 +315,13 @@ void funcContent() {
             insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex1)) { // Array is local
                 op1Offset = getLocalOffset(notation.operand1); // Array head
-                insertCode("sub $t2, $sp, " + toString(op1Offset)); // Merge offset, $t2 reserves array offset
+                insertCode("add $t2, $sp, " + toString(op1Offset)); // Merge offset, $t2 reserves array offset
             } else { // Array is global
                 op1Offset = getGlobalOffset(notation.operand1);
                 insertCode("add $t2, $gp, " + toString(op1Offset));
             }
-            thirdOperandToMemory(notation.operand3, "$t2");
+            insertCode("lw $t1, ($t2)"); // Get value from array
+            thirdOperandToMemory(notation.operand3, "$t1");
         } else if (notation.ioperator == "JMP") {
             insertCode("j " + notation.operand3);
         } else if (notation.ioperator == "BEQ") {
