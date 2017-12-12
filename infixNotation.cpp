@@ -94,7 +94,7 @@ void outputInfixes() {
 
 string createTempVar() {
     string tempVar;
-    tempVar = "#t" + std::to_string(tempVarIndex);
+    tempVar = "#t" + toString(tempVarIndex);
     tempVarIndex++;
     return tempVar;
 }
