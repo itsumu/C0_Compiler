@@ -73,6 +73,25 @@ typedef struct {
     string operand2;
     string operand3;
 } infixNotation;
+typedef enum {
+    LeadingZero, NumRangeExceed, ExclamationMark,
+    EmptyChar, IllegalChar, QuotMarkLost,
+    EmptyStr, IllegalStr, StrRangeExceed,
+    UnknownWord, SignedZero, NumErr,
+    NotVarFunc, IdRepeat, CharConErr,
+    ConDefTypeErr, ArrIndexErr, DefHeadErr,
+    IdNotDefine, IllegalFact, IdKindNotMatch,
+    StepLenZero, CaseNotCon, ParamCountExceed,
+    IllegalType, PrintfSyLost, ScanfSyLost,
+    ReturnSyLost, DefaultSyLost, ColonLost,
+    CaseSyLost, SwitchSyLost, PlusLost,
+    ForSyLost, IfSyLost, BecomesSyLost,
+    VoidSyLost, LeftBraceLost, RightBraceLost,
+    LeftParentLost, RightParentLost, RightBrackLost,
+    IdLost, SemicolonLost, AssignSyLost,
+    TypeDefLost, StepLenLost, StateErr,
+    IllegalSyntax
+} errorType;
 
 // Static elements
 extern alpha keywords[];

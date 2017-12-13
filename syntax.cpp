@@ -25,16 +25,16 @@ void integer(string &infixString) {
                 infixString = toString(inum);
                 insymbol();
             } else {
-                //error(); // Sign before zero
+                error(SignedZero); // Sign before zero
             }
         } else {
-            //error(); // Number error
+            error(NumErr); // Number error
         }
     } else if (sy == intcon) {
         infixString = toString(inum);
         insymbol();
     } else {
-        //error() // Number error
+        error(NumErr); // Number error
     }
 }
 
@@ -53,7 +53,7 @@ void program() {
         if (sy == identi) {
             insymbol();
         } else {
-            //error() // Not a variable or function
+            error(NotVarFunc); // Not a variable or function
         }
         if (sy == lparent) { // funcWithRetDef
             charPtr = tempCharPtr; // Recover charPtr
@@ -67,7 +67,7 @@ void program() {
             sy = tempSy;
             globalVarState();
         } else {
-            //error(); // Not a variable or function
+            error(NotVarFunc); // Not a variable or function
         }
     }
 
@@ -91,7 +91,7 @@ void program() {
                 sy = tempSy;
                 break;
             } else {
-                // error(); // Identifier lost
+                 error(IdLost); // Identifier lost
             }
         }
     }
@@ -100,7 +100,7 @@ void program() {
     if (sy == voidsy) {
         mainDef();
     } else {
-        //error(); // Unallowed syntax in program
+        error(IllegalSyntax); // Illegal syntax in program
     }
 }
 
@@ -112,7 +112,7 @@ void constState() {
         if (sy == semicolon) {
             insymbol();
         } else {
-            //error(); // Semicolon lost
+            error(SemicolonLost); // Semicolon lost
         }
     }
     cout << "This is a const declaration statement." << endl;
@@ -131,7 +131,7 @@ void constDef() {
                 strcpy(idName, token);
                 insymbol();
             } else {
-                //error(); // Const identifier error
+                error(IdLost); // Identifier lost
             }
             if (sy == becomes) {
                 insymbol();
@@ -140,10 +140,10 @@ void constDef() {
                     insertTable(consts, ints, idName, 0, level, strToInt(infixString));
                     insertInfix("CONST", infixString, "int", idName);
                 } else {
-                    //error(); // Identifier repeatedly define
+                    error(IdRepeat); // Identifier repeatedly define
                 }
             } else {
-                //error(); // Assignment symbol error
+                error(AssignSyLost); // Assignment symbol lost
             }
         } while (sy == comma);
     } else if (sy == charsy) { // Char const
@@ -153,27 +153,27 @@ void constDef() {
                 strcpy(idName, token);
                 insymbol();
             } else {
-                //error(); // Const identifier error
+                error(IdLost); // Identifier lost
             }
             if (sy == becomes) {
                 insymbol();
             } else {
-                //error(); // Assignment symbol error
+                error(AssignSyLost); // Assignment symbol lost
             }
             if (sy == charcon) {
                 if (isDefinable(idName)) {
                     insertTable(consts, chars, idName, 0, level, inum);
                     insertInfix("CONST", toString(inum), "char", idName);
                 } else {
-                    //error(); // Identifier repeatedly define
+                    error(IdRepeat); // Identifier repeatedly define
                 }
                 insymbol();
             } else {
-                //error(); // Char const error
+                error(CharConErr); // Char const error
             }
         }while (sy == comma);
     } else {
-        // error(); // Const definition type error
+         error(ConDefTypeErr); // Const definition type error
     }
 }
 
@@ -190,7 +190,7 @@ void globalVarState() {
         if (sy == identi) {
             insymbol();
         } else {
-            //error(); // Identifier lost
+            error(IdLost); // Identifier lost
         }
         if (sy == lparent) { // Function occurred, get back
             charPtr = tempCharPtr;
@@ -207,7 +207,7 @@ void globalVarState() {
         if (sy == semicolon) {
             insymbol();
         } else {
-            //error(); // Semicolon lost
+            error(SemicolonLost); // Semicolon lost
         }
     } while (sy == intsy || sy == charsy);
     cout << "This is a global variable declaration statement." << endl;
@@ -220,7 +220,7 @@ void varState() {
         if (sy == semicolon) {
             insymbol();
         } else {
-            //error(); // Semicolon lost
+            error(SemicolonLost); // Semicolon lost
         }
     } while (sy == intsy || sy == charsy);
     cout << "This is a variable declaration statement." << endl;
@@ -239,13 +239,13 @@ void varDef() {
         }
         insymbol();
     } else {
-        //error(); // Type error
+        error(IllegalType); // Illegal type
     }
     if (sy == identi) {
         strcpy(idName, token);
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == lbrack) { // Following are array management
         insymbol();
@@ -255,22 +255,22 @@ void varDef() {
                 insertTable(vars, varType, idName, inum, level, 0);
                 insertInfix("VAR", toString(inum), varType == ints ? "int" : "char", idName);
             } else {
-                //error(); // Identifier repeatedly define
+                error(IdRepeat); // Identifier repeatedly define
             }
         } else {
-            //error(); // Array index error
+            error(ArrIndexErr); // Array index error
         }
         if (sy == rbrack) {
             insymbol();
         } else {
-            //error(); // Array right bracket lost
+            error(RightBrackLost); // Right bracket lost
         }
     } else { // General variable
         if (isDefinable(idName)) {
             insertTable(vars, varType, idName, 0, level, 0);
             insertInfix("VAR", " ", varType == ints ? "int" : "char", idName);
         } else {
-            //error(); // Identifier repeatedly define
+            error(IdRepeat); // Identifier repeatedly define
         }
     }
     while (sy == comma) {
@@ -279,7 +279,7 @@ void varDef() {
             strcpy(idName, token);
             insymbol();
         } else {
-            //error(); // Identifier lost
+            error(IdLost); // Identifier lost
         }
         if (sy == lbrack) { // Following are array management
             insymbol();
@@ -289,22 +289,22 @@ void varDef() {
                     insertTable(vars, varType, idName, inum, level, 0);
                     insertInfix("VAR", toString(inum), varType == ints ? "int" : "char", idName);
                 } else {
-                    //error(); // Identifier repeatedly define
+                    error(IdRepeat); // Identifier repeatedly define
                 }
             } else {
-                //error(); // Array index error
+                error(ArrIndexErr); // Array index error
             }
             if (sy == rbrack) {
                 insymbol();
             } else {
-                //error(); // Array right bracket lost
+                error(RightBrackLost); // Right bracket lost
             }
         } else { // General variable
             if (isDefinable(idName)) {
                 insertTable(vars, varType, idName, 0, level, 0); // length = 0, addr automatic set
                 insertInfix("VAR", " ", varType == ints ? "int" : "char", idName);
             } else {
-                //error(); // Identifier repeatedly define
+                error(IdRepeat); // Identifier repeatedly define
             }
         }
     }
@@ -323,14 +323,14 @@ void funcWithRetDef() {
         idNameString = idName;
         insertInfix("FUNC", " ", returnType == ints ? "int" : "char", idNameString);
     } else {
-        //error(); // Identifier repeatedly define
+        error(IdRepeat); // Identifier repeatedly define
     }
 
     level++; // Dig deeper
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == rparent) { // Empty parameter
         insymbol();
@@ -340,20 +340,20 @@ void funcWithRetDef() {
         if (sy == rparent) {
             insymbol();
         } else {
-            //error(); // Right parenthesis lost
+            error(RightParentLost); // Right parenthesis lost
         }
     }
     if (sy == lbrace) {
         insymbol();
     } else {
-        //error(); // Left brace lost
+        error(LeftBraceLost); // Left brace lost
     }
     complexState(); // Manage complex statement
     if (sy == rbrace) {
         cout << "This is a definition of function with return." << endl;
         insymbol();
     } else {
-        //error(); // Right brace lost
+        error(RightBraceLost); // Right brace lost
     }
 
     // Ending work
@@ -370,7 +370,7 @@ void funcWithoutRetDef() {
     if (sy == voidsy) { // Manage definition head
         insymbol();
     } else {
-        //error(); // Void lost
+        error(VoidSyLost); // Void symbol lost
     }
     if (sy == identi) {
         if (isDefinable(token)) { // Insert function
@@ -378,17 +378,17 @@ void funcWithoutRetDef() {
             insertTable(funcs, voids, token, paramCount, level - 1, 0); // paramCount = 0
             insertInfix("FUNC", " ", "void", idNameString);
         } else {
-            //error(); // Identifier repeatedly define
+            error(IdRepeat); // Identifier repeatedly define
         }
         strcpy(idName, token);
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == rparent) { // Empty parameter
         insymbol();
@@ -398,20 +398,20 @@ void funcWithoutRetDef() {
         if (sy == rparent) {
             insymbol();
         } else {
-            //error(); // Right parenthesis lost
+            error(RightParentLost); // Right parenthesis lost
         }
     }
     if (sy == lbrace) {
         insymbol();
     } else {
-        //error(); // Left brace lost
+        error(LeftBraceLost); // Left brace lost
     }
     complexState(); // Manage complex statement
     if (sy == rbrace) {
         cout << "This is a definition of function without return." << endl;
         insymbol();
     } else {
-        //error(); // Right brace lost
+        error(RightBraceLost); // Right brace lost
     }
 
     // Ending work
@@ -430,13 +430,13 @@ void defHead(type* returnType, char* identifier) {
         *returnType = chars;
         insymbol();
     } else {
-        //error; // Definition head error
+        error(DefHeadErr); // Definition head error
     }
     if (sy == identi) {
         strcpy(identifier, token);
         insymbol();
     } else {
-        //error; // Identifier lost
+        error(IdLost); // Identifier lost
     }
 }
 
@@ -457,7 +457,7 @@ void parameterTable() {
         }
         insymbol();
     } else {
-        //error(); // Type lost
+        error(TypeDefLost); // Type definition lost
     }
     if (sy == identi) {
         paramCount++;
@@ -465,11 +465,11 @@ void parameterTable() {
             insertTable(params, paramType, token, 0, level, 0);
             insertInfix("PARAM", " ", paramType == ints ? "int" : "char", token);
         } else {
-            //error(); // Identifier repeatedly define
+            error(IdRepeat); // Identifier repeatedly define
         }
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     while (sy == comma) {
         insymbol();
@@ -481,18 +481,18 @@ void parameterTable() {
             }
             insymbol();
         } else {
-            //error(); // Type definition lost
+            error(TypeDefLost); // Type definition lost
         }
         if (sy == identi) {
             paramCount++;
             if (isDefinable(token)) {
                 insertTable(params, paramType, token, 0, level, 0);
             } else {
-                //error(); // Identifier repeatedly define
+                error(IdRepeat); // Identifier repeatedly define
             }
             insymbol();
         } else {
-            //error(); // Identifier lost
+            error(IdLost); // Identifier lost
         }
     }
 }
@@ -514,32 +514,32 @@ void mainDef() {
     if (sy == voidsy) { // Manage definition head
         insymbol();
     } else {
-        //error(); // Void lost
+        error(VoidSyLost); // Void symbol lost
     }
     if (sy == mainsy) {
         if (isDefinable(token)) {
             insertTable(funcs, voids, token, 0, level - 1, 0); // paramCount = 0
         } else {
-            //error(); // Identifier repeatedly define
+            error(IdRepeat); // Identifier repeatedly define
         }
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == rparent) {
         insymbol();
     } else {
-        //error(); // Right parenthesis lost
+        error(RightParentLost); // Right parenthesis lost
     }
     if (sy == lbrace) {
         insymbol();
     } else {
-        //error(); // Left brace lost
+        error(LeftBraceLost); // Left brace lost
     }
     insertInfix("FUNC", " ", "void", "main");
     complexState(); // Manage complex statement
@@ -548,7 +548,7 @@ void mainDef() {
         cout << "This is the main function." << endl;
         insymbol();
     } else {
-        //error(); // Right brace lost
+        error(RightBraceLost); // Right brace lost
     }
     level--;
 }
@@ -566,7 +566,7 @@ type factor(string &infixString) {
 
             idIndex = lookUp(token);
             if (idIndex == -1) {
-                //error(); // Identifier is not defined
+                error(IdNotDefine); // Identifier is not defined
             }
             firstType = idTable[idIndex].typ;
             infixString = token; // Get variable name
@@ -575,7 +575,7 @@ type factor(string &infixString) {
                 string arrayIndex;
 
                 if (idTable[idIndex].cls != vars || idTable[idIndex].length == 0) {
-                    //error(); // Identifier kind does not match
+                    error(IdKindNotMatch); // Identifier kind does not match
                 }
                 insymbol();
                 expression(arrayIndex);
@@ -586,11 +586,11 @@ type factor(string &infixString) {
                     infixString = tempVar; // Return temp variable
                     insymbol();
                 } else {
-                    //error(); // Right bracket lost
+                    error(RightBrackLost); // Right bracket lost
                 }
             } else if (sy == lparent) { // Call function with return
                 if (idTable[idIndex].cls != funcs) {
-                    //error(); // Identifier type does not match
+                    error(IdKindNotMatch); // Identifier kind does not match
                 }
                 charPtr = tempCharPtr;
                 ch = tempCh;
@@ -598,7 +598,7 @@ type factor(string &infixString) {
                 funcWithRetCall(infixString); // infixString is the temp var assigned with return value
             } else { // General identifier
                 if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-                    //error(); // Identifier type does not match
+                    error(IdKindNotMatch); // Identifier kind not match
                 }
                 charPtr = tempCharPtr;
                 ch = tempCh;
@@ -627,12 +627,12 @@ type factor(string &infixString) {
             if (sy == rparent) {
                 insymbol();
             } else {
-                //error(); // Right parenthesis lost
+                error(RightParentLost); // Right parenthesis lost
             }
             break;
         }
         default:
-            ;//error(); // Invalid factor
+            error(IllegalFact); // Illegal factor
     }
     return firstType;
 }
@@ -705,17 +705,17 @@ void assignState() {
 
     if (sy == identi) {
         if ((idIndex = lookUp(token)) == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         }
         firstType = idTable[idIndex].typ;
         leftToEqual = token; // Get left variable's name
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == becomes) { // General variable
         if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind not match
         }
         insymbol();
         secondType = expression(rightToEqual);
@@ -728,19 +728,19 @@ void assignState() {
         string arrayIndex;
 
         if (idTable[idIndex].cls != vars || idTable[idIndex].length == 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         insymbol();
         expression(arrayIndex);
         if (sy == rbrack) {
             insymbol();
         } else {
-            //error(); // Right bracket lost
+            error(RightBrackLost); // Right bracket lost
         }
         if (sy == becomes) {
             insymbol();
         } else {
-            //error(); // Becomes symbol or left bracket lost
+            error(BecomesSyLost); // Becomes symbol lost
         }
         secondType = expression(rightToEqual);
         if (firstType != secondType) {
@@ -749,7 +749,7 @@ void assignState() {
         insertInfix("SETARR", rightToEqual, arrayIndex, leftToEqual);
         cout << "This is an assignment statement." << endl;
     } else {
-        //error(); // Becomes symbol or left bracket lost
+        error(BecomesSyLost); // Becomes symbol lost
     }
 
 }
@@ -801,12 +801,12 @@ void ifState() {
     if (sy == ifsy) {
         insymbol();
     } else {
-        //error(); // If lost
+        error(IfSyLost); // If symbol lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     judgement(judgeResult);
     firstLabel = "LABEL" + toString(labelIndex);
@@ -815,7 +815,7 @@ void ifState() {
     if (sy == rparent) {
         insymbol();
     } else {
-        //error(); // Right parenthesis lost
+        error(RightParentLost); // Right parenthesis lost
     }
     statement();
     secondLabel = "LABEL" + toString(labelIndex);
@@ -848,29 +848,29 @@ void loopState() {
     if (sy == forsy) {
         insymbol();
     } else {
-        //error(); // For symbol lost
+        error(ForSyLost); // For symbol lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier does not match
         }
         idNameString = token;
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == becomes) {
         insymbol();
     } else {
-        //error(); // Becomes symbol lost
+        error(BecomesSyLost); // Becomes symbol lost
     }
     expression(expressionString);
     insertInfix("ASSIGN", " ", expressionString, idNameString);
@@ -880,7 +880,7 @@ void loopState() {
     if (sy == semicolon) {
         insymbol();
     } else {
-        //error(); // Semicolon lost
+        error(SemicolonLost); // Semicolon lost
     }
     judgeLabel = labelStr + toString(labelIndex);
     labelIndex++;
@@ -893,60 +893,60 @@ void loopState() {
     if (sy == semicolon) {
         insymbol();
     } else {
-        //error(); // Semicolon lost
+        error(SemicolonLost); // Semicolon lost
     }
     increaseLabel = labelStr + toString(labelIndex);
     ++labelIndex;
     insertInfix("LABEL", " ", " ", increaseLabel);
     if (sy == identi) {
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         idNameString = token;
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == becomes) {
         insymbol();
     } else {
-        //error(); // Becomes symbol lost
+        error(BecomesSyLost); // Becomes symbol lost
     }
     if (sy == identi) {
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         idNameString2 = token;
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     string ioperator;
     if (sy == plus || sy == minus) {
         ioperator = sy == plus ? "ADD" : "MINUS";
         insymbol();
     } else {
-        //error(); // Plus or minus before step length lost
+        error(PlusLost); // Plus or minus lost
     }
     if (sy == intcon) {
         if (inum != 0) {
             insertInfix(ioperator, idNameString2, toString(inum), idNameString); // Increment
             insymbol();
         } else {
-            //error(); // Step length couldn't be 0
+            error(StepLenZero); // Step length couldn't be 0
         }
     } else {
-        //error(); // Step length lost
+        error(StepLenLost); // Step length lost
     }
     insertInfix("JMP", " ", " ", judgeLabel);
     if (sy == rparent) {
         insymbol();
     } else {
-        //error(); // Right parenthesis lost
+        error(RightParentLost); // Right parenthesis lost
     }
     insertInfix("LABEL", " ", " ", bodyLabel);
     statement();
@@ -963,23 +963,23 @@ void conditionState() {
     if (sy == switchsy) {
         insymbol();
     } else {
-        //error(); // Switch symbol lost
+        error(SwitchSyLost); // Switch symbol lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     type firstType = expression(switchElement);
     if (sy == rparent) {
         insymbol();
     } else {
-        //error(); // Right parenthesis lost
+        error(RightParentLost); // Right parenthesis lost
     }
     if (sy == lbrace) {
         insymbol();
     } else {
-        //error(); // Left brace lost
+        error(LeftBraceLost); // Left brace lost
     }
     endLabel = labelStr + toString(labelIndex);
     labelIndex++;
@@ -989,7 +989,7 @@ void conditionState() {
         cout << "This is a condition statement." << endl;
         insymbol();
     } else {
-        //error(); // Right brace lost
+        error(RightBraceLost); // Right brace lost
     }
     insertInfix("LABEL", " ", " ", endLabel);
 }
@@ -1009,7 +1009,7 @@ void conditionBranch(type firstType, string switchElement, string endSwitchLabel
     if (sy == casesy) {
         insymbol();
     } else {
-        //error(); // Case symbol lost
+        error(CaseSyLost); // Case symbol lost
     }
     if (sy == charcon) { // Char const
         if (firstType != chars) {
@@ -1034,10 +1034,10 @@ void conditionBranch(type firstType, string switchElement, string endSwitchLabel
             caseElement = toString(temp);
             insymbol();
         } else {
-            // error(); // Case element not a constant
+            error(CaseNotCon); // Case element not a constant
         }
     } else {
-        // error(); // Case element not a constant
+        error(CaseNotCon); // Case element not a constant
     }
     nextCaseLabel = labelStr + toString(labelIndex);
     labelIndex++;
@@ -1045,7 +1045,7 @@ void conditionBranch(type firstType, string switchElement, string endSwitchLabel
     if (sy == colon) {
         insymbol();
     } else {
-        // error(); // Colon lost
+        error(ColonLost); // Colon lost
     }
     statement();
     insertInfix("JMP", " ", " ", endSwitchLabel);
@@ -1057,12 +1057,12 @@ void conditionDefault() {
     if (sy == defaultsy) {
         insymbol();
     } else {
-        //error(); // Default symbol lost
+        error(DefaultSyLost); // Default symbol lost
     }
     if (sy == colon) {
         insymbol();
     } else {
-        //error(); // Colon lost
+        error(ColonLost); // Colon lost
     }
     statement();
 }
@@ -1075,19 +1075,19 @@ void funcWithRetCall(string &infixString) {
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != funcs || idTable[idIndex].typ == voids) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         funcName = token;
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == rparent) { // Function without parameters
         insymbol();
@@ -1096,7 +1096,7 @@ void funcWithRetCall(string &infixString) {
         if (sy == rparent) {
             insymbol();
         } else {
-            //error(); // Right parenthesis lost
+            error(RightParentLost); // Right parenthesis lost
         }
     }
     insertInfix("CALL", " ", " ", funcName);
@@ -1113,19 +1113,19 @@ void funcWithoutRetCall() {
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != funcs) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         funcName= token;
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == rparent) {
         insymbol();
@@ -1134,7 +1134,7 @@ void funcWithoutRetCall() {
         if (sy == rparent) {
             insymbol();
         } else {
-            //error(); // Right parenthesis lost
+            error(RightParentLost); // Right parenthesis lost
         }
     }
     insertInfix("CALL", " ", " ", funcName);
@@ -1155,7 +1155,7 @@ void valueParamTable(int idIndex) {
         }
         insertInfix("PUSH", " ", " ", infixString);
     } else {
-        //error(); // Parameter count exceeds
+        error(ParamCountExceed); // Parameter count exceeds
     }
     valueParamIndex++;
     while (sy == comma) {
@@ -1167,7 +1167,7 @@ void valueParamTable(int idIndex) {
             }
             insertInfix("PUSH", " ", " ", infixString);
         } else {
-            //error(); // Parameter count exceeds
+            error(ParamCountExceed); // Parameter count exceeds
         }
         valueParamIndex++;
     }
@@ -1182,7 +1182,7 @@ void returnState() {
     if (sy == returnsy) {
         insymbol();
     } else {
-        //error(); // Return symbol lost
+        error(ReturnSyLost); // Return symbol lost
     }
     if (sy == lparent) { // Optional branch
         insymbol();
@@ -1195,7 +1195,7 @@ void returnState() {
             cout << "This is a return statement." << endl;
             insymbol();
         } else {
-            //error(); // Right parenthesis lost
+            error(RightParentLost); // Right parenthesis lost
         }
     } else {
         insertInfix("RETURN", " ", " ", " "); // Return null
@@ -1212,40 +1212,40 @@ void scanfState() {
     if (sy == scanfsy) {
         insymbol();
     } else {
-        //error(); // Scanf symbol lost
+        error(ScanfSyLost); // Scanf symbol lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
-            //error(); // Identifier is not defined
+            error(IdNotDefine); // Identifier is not defined
         } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            //error(); // Identifier type does not match
+            error(IdKindNotMatch); // Identifier kind does not match
         }
         scanString = token;
         insertInfix("SCANF", " ", " ", scanString);
         insymbol();
     } else {
-        //error(); // Identifier lost
+        error(IdLost); // Identifier lost
     }
 
     while (sy == comma){
         insymbol();
         if (sy == identi) {
             if (idIndex == -1) {
-                //error(); // Identifier is not defined
+                error(IdNotDefine); // Identifier is not defined
             } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-                //error(); // Identifier type does not match
+                error(IdKindNotMatch); // Identifier kind does not match
             }
             scanString = token;
             insertInfix("SCANF", " ", " ", scanString);
             insymbol();
         } else {
-            //error(); // Identifier lost
+            error(IdLost); // Identifier lost
         }
     }
 
@@ -1253,7 +1253,7 @@ void scanfState() {
         cout << "This is a scanf statement." << endl;
         insymbol();
     } else {
-        //error(); // Right parenthesis lost
+        error(RightParentLost); // Right parenthesis lost
     }
 }
 
@@ -1266,12 +1266,12 @@ void printfState() {
     if (sy == printfsy) {
         insymbol();
     } else {
-        //error(); // Printf symbol lost
+        error(PrintfSyLost); // Printf symbol lost
     }
     if (sy == lparent) {
         insymbol();
     } else {
-        //error(); // Left parenthesis lost
+        error(LeftParentLost); // Left parenthesis lost
     }
     if (sy == stringcon) { // First two branches
         generalString = str;
@@ -1289,7 +1289,7 @@ void printfState() {
         cout << "This is a printf statement." << endl;
         insymbol();
     } else {
-        //error(); // Right prenthesis lost
+        error(RightParentLost); // Right prenthesis lost
     }
 }
 
@@ -1312,7 +1312,7 @@ void statement() {
             if (sy == rbrace){
                 insymbol();
             } else {
-                //error(); // Right brace lost
+                error(RightBraceLost); // Right brace lost
             }
             break;
         }
@@ -1341,7 +1341,7 @@ void statement() {
             if (sy == semicolon) {
                 insymbol();
             } else {
-                //error(); // Semicolon lost
+                error(SemicolonLost); // Semicolon lost
             }
             break;
         }
@@ -1350,7 +1350,7 @@ void statement() {
             if (sy == semicolon) {
                 insymbol();
             } else {
-                //error(); // Semicolon lost
+                error(SemicolonLost); // Semicolon lost
             }
             break;
         }
@@ -1359,7 +1359,7 @@ void statement() {
             if (sy == semicolon) {
                 insymbol();
             } else {
-                //error(); // Semicolon lost
+                error(SemicolonLost); // Semicolon lost
             }
             break;
         }
@@ -1371,7 +1371,7 @@ void statement() {
             if (sy == semicolon) {
                 insymbol();
             } else {
-                //error(); // Semicolon lost
+                error(SemicolonLost); // Semicolon lost
             }
             break;
         }
@@ -1379,7 +1379,7 @@ void statement() {
             insymbol();
             break;
         default:
-            ;//error(); // Statement error
+            error(StateErr); // Statement error
     }
 }
 

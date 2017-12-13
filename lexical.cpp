@@ -106,7 +106,7 @@ void insymbol() {
             sy = intcon;
             nextch();
             if (isdigit(ch)) { // Error & read till the last number
-                error(0);
+                error(LeadingZero);
                 nextch();
                 while (isdigit(ch)){
                     nextch();
@@ -121,7 +121,7 @@ void insymbol() {
             }
         }
     if( k > maxDigit  ||  inum > maxInt ) {
-        error(1);
+        error(NumRangeExceed);
         inum = 0;
         k = 0;
     }
@@ -158,19 +158,19 @@ void insymbol() {
             sy = neq;
             nextch();
         } else {
-            error(2);
+            error(ExclamationMark);
             sy = neq;
         }
     } else if (ch == '\'') { // Character
         nextch();
         if (ch == '\'') {
-            error(3); // Empty char
+            error(EmptyChar); // Empty char
             sy = charcon;
             inum = 0;
         } else { // One or more characters in quotation marks
             if (ch != '+' && ch != '-' && ch != '*' && ch != '/'
                     && !isdigit(ch) && !isLetter(ch)) {
-                error(4); // Illigal character
+                error(IllegalChar); // Illigal character
                 sy = charcon;
                 inum = 0;
             } else { // Probable character
@@ -178,7 +178,7 @@ void insymbol() {
                 nextch();
                 if (ch != '\''){ // Characters more than one
                     errorFlag = true;
-                    error(5);
+                    error(QuotMarkLost);
                     sy = charcon;
                     inum = 0;
                     while (ch != '\'' && ch != '\n') nextch(); // End till '\n' or '
@@ -192,7 +192,7 @@ void insymbol() {
     } else if (ch == '"') { // String
         nextch();
         if (ch == '"') { // Empty string
-            error(6);
+            error(EmptyStr);
             sy = stringcon;
             inum = 0;
         } else { // String inside
@@ -201,14 +201,14 @@ void insymbol() {
             do {
                 if (!isMyAscii(ch)) { // Illegal my ascii
                     errorFlag = true;
-                    error(7);
+                    error(IllegalStr);
                     sy = stringcon;
                     inum = 0;
                     while (ch != '"' && isspace(ch)) nextch(); // End till space or "
                     return;
                 }
                 if (k == maxStrLength) { // String too long
-                    error(8);
+                    error(StrRangeExceed);
                     sy = stringcon;
                     inum = 0;
                     while (ch != '"' && isspace(ch)) nextch(); // End till space or "
@@ -233,7 +233,7 @@ void insymbol() {
         printf("Compiling finished.");
         return;
     } else {
-        error(9); // Illegal character head
+        error(UnknownWord); // Illegal character head
         nextch();
         insymbol();
     }
