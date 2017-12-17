@@ -76,6 +76,9 @@ int main(int argc, char* argv[]) {
     setup();
     inputFile.open("test.txt", ios::in);
     program();
+    if (errorFlag) {
+        return 0;
+    }
     mipsProgram("mipsCode.asm");
     return 0;
 }

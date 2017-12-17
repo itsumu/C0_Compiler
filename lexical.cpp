@@ -15,7 +15,6 @@ int inum;
 char str[maxStrLength + 1]; // +1 for \0
 
 char line[maxLineLength + 1]; // +1 for \0
-bool skipFlag = false, errorFlag = false;
 alpha keywords[keywordCount];
 symbol keySymbols[keywordCount];
 map<char, symbol> specialSymbols;
@@ -190,17 +189,15 @@ void insymbol() {
         }
         nextch();
     } else if (ch == '"') { // String
+        clearStr();
         nextch();
         if (ch == '"') { // Empty string
-            error(EmptyStr);
             sy = stringcon;
             inum = 0;
         } else { // String inside
-            clearStr();
             k = 0;
             do {
                 if (!isMyAscii(ch)) { // Illegal my ascii
-                    errorFlag = true;
                     error(IllegalStr);
                     sy = stringcon;
                     inum = 0;
@@ -216,6 +213,10 @@ void insymbol() {
                 }
                 str[k] = ch;
                 k++;
+                if (ch == '\\') { // Keep string output same as origin
+                    str[k] = '\\';
+                    k++;
+                }
                 nextch();
             } while (ch != '"');
             sy = stringcon;

@@ -76,21 +76,20 @@ typedef struct {
 typedef enum {
     LeadingZero, NumRangeExceed, ExclamationMark,
     EmptyChar, IllegalChar, QuotMarkLost,
-    EmptyStr, IllegalStr, StrRangeExceed,
-    UnknownWord, SignedZero, NumErr,
-    NotVarFunc, IdRepeat, CharConErr,
-    ConDefTypeErr, ArrIndexErr, DefHeadErr,
-    IdNotDefine, IllegalFact, IdKindNotMatch,
-    StepLenZero, CaseNotCon, ParamCountExceed,
-    IllegalType, PrintfSyLost, ScanfSyLost,
-    ReturnSyLost, DefaultSyLost, ColonLost,
-    CaseSyLost, SwitchSyLost, PlusLost,
-    ForSyLost, IfSyLost, BecomesSyLost,
-    VoidSyLost, LeftBraceLost, RightBraceLost,
-    LeftParentLost, RightParentLost, RightBrackLost,
-    IdLost, SemicolonLost, AssignSyLost,
-    TypeDefLost, StepLenLost, StateErr,
-    IllegalSyntax
+    IllegalStr, StrRangeExceed, UnknownWord,
+    SignedZero, NumErr, NotVarFunc,
+    IdRepeat, CharConErr, ConDefTypeErr,
+    ArrIndexErr, DefHeadErr, IdNotDefine,
+    IllegalFact, IdKindNotMatch, StepLenZero,
+    CaseNotCon, ParamCountExceed, IllegalType,
+    PrintfSyLost, ScanfSyLost, ReturnSyLost,
+    DefaultSyLost, ColonLost, CaseSyLost,
+    SwitchSyLost, PlusLost, ForSyLost,
+    IfSyLost, BecomesSyLost, VoidSyLost,
+    LeftBraceLost, RightBraceLost, LeftParentLost,
+    RightParentLost, RightBrackLost, IdLost,
+    SemicolonLost, AssignSyLost, TypeDefLost,
+    StepLenLost, StateErr, IllegalSyntax
 } errorType;
 
 // Static elements
@@ -124,14 +123,15 @@ extern std::vector<int> funcPtrs;
 extern int idTablePtr;
 
 // Flags
+extern bool errorFlag;
 extern bool skipFlag;
 
 // Functions
     // General actions
 void error(int errorNum); // Output error position & error number
 void warn(int warnNum);
+void skipUntil(symbol nexts[]);
 void setup(); // Set up reserved words
-void emit(); // Emit middle code
 
     // Lexical actions
 void nextch(); // Store one source code line into line[] and store one char into ch

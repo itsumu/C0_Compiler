@@ -35,58 +35,6 @@ inline void insertCode(string code) {
     mipsCodes = mipsCodes + code + "\n";
 }
 
-// Add to stack where $gp + offset points
-void pushGlobalStack() {
-    static int addr = 0;
-    insertCode("sw $0, " + toString(4 * addr) + "($gp)");
-    ++addr;
-}
-
-// Add to stack where $fp + offset points
-void pushLocalStack() {
-    insertCode("sw $0, ($sp)");
-    insertCode("sub $sp, $sp, 4");
-}
-
-// Manage variable and store it into stack from $gp or $fp
-void mipsVarDef(bool isGlobal) {
-    if (isGlobal) { // Push global variable into stack started from $gp
-        for (int i = 0; i < staticTable.size() && staticTable[i].cls != funcs; ++i) {
-            if (staticTable[i].typ == vars) {
-                pushGlobalStack();
-            }
-        }
-    } else { // Push global variable into stack started from $fp
-        int startIndex = lookUpStatic(currentFunc.c_str());
-        for (int i = startIndex + 1; i < staticTable.size() && staticTable[i].cls != funcs ; ++i) {
-            if (staticTable[i].typ == vars) {
-                pushLocalStack();
-            }
-        }
-    }
-}
-
-// Store $fp and $ra into stack
-void funcHead() {
-    int paramCount = staticTable[lookUp(currentFunc.c_str())].length;
-    int fpOffset = frameHeadOffset + paramCount * 4;
-    int raOffset = fpOffset - 4;
-
-    insertCode("sw $fp," + toString(fpOffset) + "($sp)"); // Push parent's $fp into stack
-    insertCode("add $fp, $sp," + toString(fpOffset)); // Set current $fp
-    insertCode("sw $ra," + toString(raOffset) + "($sp)"); // Push current $ra into stack
-
-    for (; infixTable[infixIndex].ioperator == "PARAM"; ++infixIndex); // Jump all parameter definition
-}
-
-// Recover $fp and $ra
-void funcTail() {
-    insertCode("lw $ra, -4($fp)");
-    insertCode("move $sp, $fp");
-    insertCode("lw $fp, ($sp)");
-    insertCode("jr $ra\n");
-}
-
 inline bool isIdentifier(string name) {
     if (isLetter(name[0]) || name[0] == '#') {
         return true;
@@ -148,13 +96,12 @@ void operandsToRegister(infixNotation notation) {
 void thirdOperandToRegister(string operand3) {
     int staticIndex = lookUpStatic(currentFunc.c_str(), operand3.c_str());
 
-    if (!isIdentifier(operand3)) {
-        // Value to variable
+    if (!isIdentifier(operand3)) { // Value to register
         insertCode("li $t0, " + toString(operand3));
     } else if (isIdentifier(operand3) && staticTable[staticIndex].cls == consts) {
-        // Constant to variable
+        // Constant to register
         insertCode("li $t0, " + toString(staticTable[staticIndex].addr));
-    } else {
+    } else { // Variable to register
         int op3Offset;
         if (staticTable[staticIndex].level != 0) {
             op3Offset = getLocalOffset(operand3);
@@ -181,12 +128,64 @@ void thirdOperandToMemory(string operand3, string registerName) {
     insertCode("sw " + registerName + ", " + toString(op3Offset) + rootRegister); // Store
 }
 
+// Add to stack where $gp + offset points
+void pushGlobalStack() {
+    static int addr = 0;
+    insertCode("sw $0, " + toString(4 * addr) + "($gp)");
+    ++addr;
+}
+
+// Add to stack where $fp + offset points
+void pushLocalStack() {
+    insertCode("sw $0, ($sp)");
+    insertCode("sub $sp, $sp, 4");
+}
+
+// Manage variable and store it into stack from $gp or $fp
+void mipsVarDef(bool isGlobal) {
+    if (isGlobal) { // Push global variable into stack started from $gp
+        for (int i = 0; i < staticTable.size() && staticTable[i].cls != funcs; ++i) {
+            if (staticTable[i].cls == vars) {
+                pushGlobalStack();
+            }
+        }
+    } else { // Push local variable into stack started from $fp
+        int startIndex = lookUpStatic(currentFunc.c_str());
+        for (int i = startIndex + 1; i < staticTable.size() && staticTable[i].cls != funcs ; ++i) {
+            if (staticTable[i].cls == vars) {
+                pushLocalStack();
+            }
+        }
+    }
+}
+
+// Store $fp and $ra into stack
+void funcHead() {
+    int paramCount = staticTable[lookUpStatic(currentFunc.c_str())].length;
+    int fpOffset = frameHeadOffset + paramCount * 4;
+    int raOffset = fpOffset - 4;
+
+    insertCode("sw $fp," + toString(fpOffset) + "($sp)"); // Push parent's $fp into stack
+    insertCode("add $fp, $sp," + toString(fpOffset)); // Set current $fp
+    insertCode("sw $ra," + toString(raOffset) + "($sp)"); // Push current $ra into stack
+
+    // Skip all parameter definitions. Params was pushed by caller
+    for (; infixTable[infixIndex].ioperator == "PARAM"; ++infixIndex);
+}
+
+// Recover $fp and $ra
+void funcTail() {
+    insertCode("lw $ra, -4($fp)");
+    insertCode("move $sp, $fp");
+    insertCode("lw $fp, ($sp)");
+    insertCode("jr $ra\n");
+}
+
 // Mange codes inside func/main definition
 void funcContent() {
     for (; infixIndex < infixTable.size() && infixTable[infixIndex].ioperator == "CONST"; ++infixIndex); // Jump all constant definitions
-    for (; infixIndex < infixTable.size() && infixTable[infixIndex].ioperator == "VAR" ; ++infixIndex) { // Manage global variables
-        mipsVarDef(false);
-    }
+    for (; infixIndex < infixTable.size() && infixTable[infixIndex].ioperator == "VAR" ; ++infixIndex); // Skip all variable definitions
+    mipsVarDef(false); // Push all variables
     for (; infixIndex < infixTable.size() && infixTable[infixIndex].ioperator != "FUNC" ; ++infixIndex) {
         // Read codes until next function definition or return
         infixNotation notation = infixTable[infixIndex];
@@ -229,7 +228,7 @@ void funcContent() {
                     }
                 } else if (isIdentifier(notation.operand2) && staticTable[staticIndex2].cls == consts) {
                     // Constant
-                    insertCode("li $t0, " + staticTable[staticIndex2].addr);
+                    insertCode("li $t0, " + toString(staticTable[staticIndex2].addr));
                 }
                 thirdOperandToMemory(notation.operand3, "$t0");
             }
@@ -250,7 +249,7 @@ void funcContent() {
                 insertCode("sub $t0, $0, $t0");
             } else if (isIdentifier(notation.operand2) && staticTable[staticIndex2].cls == consts) {
                 // Constant
-                insertCode("li $t0, " + staticTable[staticIndex2].addr);
+                insertCode("li $t0, " + toString(staticTable[staticIndex2].addr));
             }
             thirdOperandToMemory(notation.operand3, "$t0");
         } else if (notation.ioperator == "EQL") {
@@ -279,21 +278,33 @@ void funcContent() {
             thirdOperandToMemory(notation.operand3, "$t0");
         } else if (notation.ioperator == "RETURN") {
             if (notation.operand3 != " ") { // Return with value
-                int op3Offset = getLocalOffset(notation.operand2);
-                insertCode("lw $t0, " + toString(op3Offset) + "($fp)");
-                insertCode("move $v1, $t0");
+                if (staticIndex3 == -1) { // Value
+                    insertCode("li $t0, " + notation.operand3);
+                } else if (staticTable[staticIndex3].cls == consts) { // Constant
+                    insertCode("li $t0, " + toString(staticTable[staticIndex3].addr));
+                } else { // Variable or parameter
+                    if (!isGlobal(staticIndex3)) {
+                        int op3Offset = getLocalOffset(notation.operand3);
+                        insertCode("lw $t0, " + toString(op3Offset) + "($fp)");
+                    } else {
+                        int op3Offset = getGlobalOffset(notation.operand3);
+                        insertCode("lw $t0, " + toString(op3Offset) + "($gp)");
+                    }
+                }
             }
+            insertCode("move $v1, $t0");
             insertCode("j " + currentFunc + "Tail"); // Jump to end of function
         } else if (notation.ioperator == "PUSH") { // Mange all PUSHes and CALL
             insertCode("sub $sp, $sp, " + toString(frameHeadOffset)); // $sp jump frame head offset
             for (; infixTable[infixIndex].ioperator == "PUSH"; ++infixIndex) {
                 // Store all parameter strings until CALL met
-                thirdOperandToRegister(notation.operand3); // Store operand3 value into $t0
+                thirdOperandToRegister(infixTable[infixIndex].operand3); // Store operand3 value into $t0
                 insertCode("sw $t0, ($sp)");
                 insertCode("sub $sp, $sp, 4");
             }
             insertCode("jal " + infixTable[infixIndex].operand3); // CALL
         } else if (notation.ioperator == "CALL") { // Only enter when no parameter is needed
+            insertCode("sub $sp, $sp, " + toString(frameHeadOffset)); // $sp jump frame head offset
             insertCode("jal " + infixTable[infixIndex].operand3); // CALL
         } else if (notation.ioperator == "SETARR") {
             int op3Offset;
@@ -302,11 +313,12 @@ void funcContent() {
             insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex3)) { // Array is local
                 op3Offset = getLocalOffset(notation.operand3); // Array head
-                insertCode("add $t2, $sp, " + toString(op3Offset)); // Merge offset, $t2 reserves array offset
+                insertCode("add $t3, $fp, " + toString(op3Offset)); // Get base offset
             } else { // Array is global
                 op3Offset = getGlobalOffset(notation.operand3);
-                insertCode("add $t2, $gp, " + toString(op3Offset));
+                insertCode("add $t3, $gp, " + toString(op3Offset));
             }
+            insertCode("add $t2, $t2, $t3"); // Merge offset
             insertCode("sw $t1, ($t2)"); // Set value to array
         } else if (notation.ioperator == "GETARR") {
             int op1Offset;
@@ -315,11 +327,12 @@ void funcContent() {
             insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex1)) { // Array is local
                 op1Offset = getLocalOffset(notation.operand1); // Array head
-                insertCode("add $t2, $sp, " + toString(op1Offset)); // Merge offset, $t2 reserves array offset
+                insertCode("add $t3, $sp, " + toString(op1Offset)); // Get base offset
             } else { // Array is global
                 op1Offset = getGlobalOffset(notation.operand1);
-                insertCode("add $t2, $gp, " + toString(op1Offset));
+                insertCode("add $t3, $gp, " + toString(op1Offset));
             }
+            insertCode("add $t2, $t2, $t3"); // Merge offset
             insertCode("lw $t1, ($t2)"); // Get value from array
             thirdOperandToMemory(notation.operand3, "$t1");
         } else if (notation.ioperator == "JMP") {
@@ -350,14 +363,18 @@ void funcContent() {
             }
             if (notation.operand3 != " ") { // Output expression
                 int operand3Offset;
-                if (!isGlobal(staticIndex3)) { // Local
-                    operand3Offset = getLocalOffset(notation.operand3);
-                    insertCode("lw $a0, " + toString(operand3Offset)+ "($fp)"); // Get expression value
-                } else { // Global
-                    operand3Offset = getGlobalOffset(notation.operand3);
-                    insertCode("lw $a0, " + toString(operand3Offset)+ "($gp)"); // Get expression value
+                if (staticTable[staticIndex3].cls == consts) { // Constants
+                    insertCode("li $a0, " + toString(staticTable[staticIndex3].addr)); // Get expression value
+                } else { // Variable or parameters
+                    if (!isGlobal(staticIndex3)) { // Local
+                        operand3Offset = getLocalOffset(notation.operand3);
+                        insertCode("lw $a0, " + toString(operand3Offset) + "($fp)"); // Get expression value
+                    } else { // Global
+                        operand3Offset = getGlobalOffset(notation.operand3);
+                        insertCode("lw $a0, " + toString(operand3Offset) + "($gp)"); // Get expression value
+                    }
                 }
-                if (staticTable[staticIndex2].typ == chars) { // Output char
+                if (staticTable[staticIndex3].typ == chars) { // Output char
                     insertCode("li $v0, 11");
                 } else { // Output int
                     insertCode("li $v0, 1");

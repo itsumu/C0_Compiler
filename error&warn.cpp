@@ -4,17 +4,18 @@
 
 #include "main.h"
 
+bool errorFlag = false;
+
 string errorMessages[] = {
-    "Number starts with zero.", // 0
-    "Number too large or too long.", // 1
-    "! without = backward.", // 2
-    "Empty character.", // 3
-    "Illegal character between ''.", // 4
-    "Character more than one or ' lost.", // 5
-    "Empty string.", // 6
-    "Illegal character inside string.", // 7
-    "String longer than 50.", // 8
-    "Unknown word.", // 9
+    "Number starts with zero.",
+    "Number too large or too long.",
+    "! without = backward.",
+    "Empty character.",
+    "Illegal character between ''.",
+    "Character more than one or ' lost.",
+    "Illegal character inside string.",
+    "String longer than 50.",
+    "Unknown word.",
     "Sign before zero.",
     "Number error.",
     "Not a variable or function.",
@@ -59,8 +60,34 @@ string errorMessages[] = {
 string warningMessage[] = {
     "Type conflicts." // 0
 };
+
+bool skipFlag = false;
+
+bool inNexts(symbol nexts[], symbol tempSy) {
+    for (int i = 0; i < sizeof(nexts) / sizeof(symbol); ++i) {
+        if (nexts[i] == tempSy) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void error(int errorNum) {
-    cout << "[Line "<< linePtr << "] Error: " << errorMessages[errorNum] << endl;
+    static int currentLine = -1;
+    if (currentLine != linePtr) { // Error in a new line, accepted
+        currentLine = linePtr;
+        if (!errorFlag) { // Used to avoid mips code generation
+            errorFlag = true;
+        }
+        cout << "[Line "<< linePtr << "] Error: " << errorMessages[errorNum] << endl;
+    }
+}
+
+void skipUntil(symbol nexts[]) {
+    while (!inNexts(nexts, sy)) {
+        insymbol();
+    }
+    skipFlag = true;
 }
 
 void warn(int warnNum) {

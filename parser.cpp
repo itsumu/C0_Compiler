@@ -54,6 +54,10 @@ void program() {
             insymbol();
         } else {
             error(NotVarFunc); // Not a variable or function
+            charPtr = tempCharPtr; // Recover charPtr
+            ch = tempCh;
+            sy = tempSy;
+            // Go to function definition
         }
         if (sy == lparent) { // funcWithRetDef
             charPtr = tempCharPtr; // Recover charPtr
@@ -68,6 +72,10 @@ void program() {
             globalVarState();
         } else {
             error(NotVarFunc); // Not a variable or function
+            charPtr = tempCharPtr; // Recover charPtr
+            ch = tempCh;
+            sy = tempSy;
+            // Go to function definition
         }
     }
 
@@ -91,7 +99,11 @@ void program() {
                 sy = tempSy;
                 break;
             } else {
-                 error(IdLost); // Identifier lost
+                error(IdLost);
+                charPtr = tempCharPtr;
+                ch = tempCh;
+                sy = tempSy;
+                funcWithoutRetDef();
             }
         }
     }
@@ -101,17 +113,27 @@ void program() {
         mainDef();
     } else {
         error(IllegalSyntax); // Illegal syntax in program
+        // Skip to the end of program
+        while (true) {
+            insymbol();
+        }
     }
 }
 
 // ＜常量说明＞ ::=  const＜常量定义＞;{ const＜常量定义＞;}
 void constState() {
     while (sy == constsy) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
         constDef();
         if (sy == semicolon) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(SemicolonLost); // Semicolon lost
         }
     }
@@ -122,43 +144,60 @@ void constState() {
 | char＜标识符＞＝＜字符＞{,＜标识符＞＝＜字符＞} */
 void constDef() {
     char idName[100];
-    string infixString;
+    string infixString = "";
 
     if (sy == intsy) { // Int const
         do {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
             if (sy == identi) {
                 strcpy(idName, token);
                 insymbol();
             } else {
                 error(IdLost); // Identifier lost
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
             }
+
             if (sy == becomes) {
                 insymbol();
-                integer(infixString); // Manage integer
-                if (isDefinable(idName)) {
-                    insertTable(consts, ints, idName, 0, level, strToInt(infixString));
-                    insertInfix("CONST", infixString, "int", idName);
-                } else {
-                    error(IdRepeat); // Identifier repeatedly define
-                }
-            } else {
+            } else if (!skipFlag){
                 error(AssignSyLost); // Assignment symbol lost
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
+            }
+            if(!skipFlag) {
+                integer(infixString); // Manage integer
+            }
+            if (isDefinable(idName)) {
+                insertTable(consts, ints, idName, 0, level, strToInt(infixString));
+                insertInfix("CONST", infixString, "int", idName);
+            } else {
+                error(IdRepeat); // Identifier repeatedly define
             }
         } while (sy == comma);
     } else if (sy == charsy) { // Char const
         do{
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
             if (sy == identi) {
                 strcpy(idName, token);
                 insymbol();
             } else {
                 error(IdLost); // Identifier lost
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
             }
             if (sy == becomes) {
                 insymbol();
-            } else {
+            } else if (!skipFlag){
                 error(AssignSyLost); // Assignment symbol lost
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
             }
             if (sy == charcon) {
                 if (isDefinable(idName)) {
@@ -168,21 +207,29 @@ void constDef() {
                     error(IdRepeat); // Identifier repeatedly define
                 }
                 insymbol();
-            } else {
+            } else if (!skipFlag) {
                 error(CharConErr); // Char const error
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
             }
         }while (sy == comma);
-    } else {
-         error(ConDefTypeErr); // Const definition type error
+    } else if (!skipFlag){
+        error(ConDefTypeErr); // Const definition type error
+        symbol nexts[] = {comma, semicolon, rbrace};
+        skipUntil(nexts);
     }
 }
 
 // ＜全局变量说明＞ ::= ＜变量定义＞;{＜变量定义＞;} （考虑变量定义后可能出现的有返回值函数）
 void globalVarState() {
-    int tempCharPtr;
-    char tempCh;
-    symbol tempSy;
+    int tempCharPtr = 0;
+    char tempCh = ' ';
+    symbol tempSy = sy;
+
     do {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         tempCharPtr = charPtr;
         tempCh = ch;
         tempSy = sy;
@@ -191,6 +238,8 @@ void globalVarState() {
             insymbol();
         } else {
             error(IdLost); // Identifier lost
+            symbol nexts[] = {semicolon};
+            skipUntil(nexts);
         }
         if (sy == lparent) { // Function occurred, get back
             charPtr = tempCharPtr;
@@ -198,15 +247,18 @@ void globalVarState() {
             sy = tempSy;
             cout << "This is a global variable declaration statement." << endl;
             return;
-        } else { // Normal variable, continue
+        } else if (!skipFlag) { // Normal variable, continue
             charPtr = tempCharPtr;
             ch = tempCh;
             sy = tempSy;
         }
         varDef();
         if (sy == semicolon) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(SemicolonLost); // Semicolon lost
         }
     } while (sy == intsy || sy == charsy);
@@ -216,10 +268,16 @@ void globalVarState() {
 // ＜变量说明＞ ::= ＜变量定义＞;{＜变量定义＞;}
 void varState() {
     do {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         varDef();
         if (sy == semicolon) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(SemicolonLost); // Semicolon lost
         }
     } while (sy == intsy || sy == charsy);
@@ -228,8 +286,8 @@ void varState() {
 
 // ＜变量定义＞ ::= ＜类型标识符＞(＜标识符＞|＜标识符＞‘[’＜无符号整数＞‘]’){,＜标识符＞|＜标识符＞‘[’＜无符号整数＞‘]’}
 void varDef() {
-    char idName[100];
-    type varType;
+    char idName[100] = "";
+    type varType = voids;
 
     if (sy == intsy || sy == charsy) { // Right variable(s)
         if (sy == intsy) {
@@ -238,14 +296,18 @@ void varDef() {
             varType = chars;
         }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IllegalType); // Illegal type
+        symbol nexts[] = {comma, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         strcpy(idName, token);
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {comma, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lbrack) { // Following are array management
         insymbol();
@@ -264,6 +326,8 @@ void varDef() {
             insymbol();
         } else {
             error(RightBrackLost); // Right bracket lost
+            symbol nexts[] = {comma, semicolon, rbrace};
+            skipUntil(nexts);
         }
     } else { // General variable
         if (isDefinable(idName)) {
@@ -274,12 +338,17 @@ void varDef() {
         }
     }
     while (sy == comma) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
         if (sy == identi) {
             strcpy(idName, token);
             insymbol();
         } else {
             error(IdLost); // Identifier lost
+            symbol nexts[] = {comma, semicolon, rbrace};
+            skipUntil(nexts);
         }
         if (sy == lbrack) { // Following are array management
             insymbol();
@@ -293,6 +362,8 @@ void varDef() {
                 }
             } else {
                 error(ArrIndexErr); // Array index error
+                symbol nexts[] = {comma, semicolon, rbrace};
+                skipUntil(nexts);
             }
             if (sy == rbrack) {
                 insymbol();
@@ -310,12 +381,35 @@ void varDef() {
     }
 }
 
+// ＜声明头部＞ ::=  int＜标识符＞ |char＜标识符＞ （返回值为标识符名）
+void defHead(type* returnType, char* identifier) {
+    if (sy == intsy) {
+        *returnType = ints;
+        insymbol();
+    } else if (sy == charsy) {
+        *returnType = chars;
+        insymbol();
+    } else if (!skipFlag){
+        error(DefHeadErr); // Definition head error
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
+    }
+    if (sy == identi) {
+        strcpy(identifier, token);
+        insymbol();
+    } else if (!skipFlag) {
+        error(IdLost); // Identifier lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
+    }
+}
+
 // ＜有返回值函数定义＞ ::= ＜声明头部＞‘(’＜参数＞|＜空＞‘)’ ‘{’＜复合语句＞‘}’
 void funcWithRetDef() {
-    char idName[100];
-    string idNameString;
+    char idName[100] = "";
+    string idNameString = "";
     paramCount = 0;
-    type returnType;
+    type returnType = voids;
 
     defHead(&returnType, idName); // Manage definition head
     if (isDefinable(idName)) { // Insert function
@@ -329,27 +423,44 @@ void funcWithRetDef() {
     level++; // Dig deeper
     if (sy == lparent) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == rparent) { // Empty parameter
         insymbol();
     } else {
-        parameter(); // Manage parameter
-        idTable[lookUp(idName)].length = paramCount; // Set parameters
+        if (!skipFlag) {
+            parameter(); // Manage parameter
+        }
+        int idIndex = lookUp(idName);
+        if (idIndex != -1) {
+            idTable[idIndex].length = paramCount; // Set parameters
+            staticTable[lookUpStatic(idName)].length = paramCount;
+        }
         if (sy == rparent) {
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(RightParentLost); // Right parenthesis lost
+            symbol nexts[] = {lbrace, rbrace};
+            skipUntil(nexts);
         }
     }
     if (sy == lbrace) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftBraceLost); // Left brace lost
+        symbol nexts[] = {rbrace};
+        skipUntil(nexts);
     }
-    complexState(); // Manage complex statement
+    if (!skipFlag) {
+        complexState(); // Manage complex statement
+    }
     if (sy == rbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         cout << "This is a definition of function with return." << endl;
         insymbol();
     } else {
@@ -363,7 +474,7 @@ void funcWithRetDef() {
 
 // ＜无返回值函数定义＞ ::= void＜标识符＞‘(’＜参数＞|＜空＞‘)’‘{’＜复合语句＞‘}’
 void funcWithoutRetDef() {
-    char idName[100];
+    char idName[100] = "";
     paramCount = 0;
 
     level++; // Dig deeper
@@ -371,6 +482,8 @@ void funcWithoutRetDef() {
         insymbol();
     } else {
         error(VoidSyLost); // Void symbol lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         if (isDefinable(token)) { // Insert function
@@ -382,32 +495,63 @@ void funcWithoutRetDef() {
         }
         strcpy(idName, token);
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == rparent) { // Empty parameter
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
-        parameter(); // Manage parameter
-        idTable[lookUp(idName)].length = paramCount; // Set parameters
+    } else { // At least one parameter
+        if (!skipFlag) {
+            parameter(); // Manage parameter
+        }
+        int idIndex = lookUp(idName);
+        if (idIndex != - 1) { // Set parameters
+            idTable[idIndex].length = paramCount;
+            staticTable[lookUpStatic(idName)].length = paramCount;
+        }
         if (sy == rparent) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag){
             error(RightParentLost); // Right parenthesis lost
+            symbol nexts[] = {lbrace, rbrace};
+            skipUntil(nexts);
         }
     }
     if (sy == lbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftBraceLost); // Left brace lost
+        symbol nexts[] = {rbrace};
+        skipUntil(nexts);
     }
-    complexState(); // Manage complex statement
+    if (!skipFlag) {
+        complexState(); // Manage complex statement
+    }
     if (sy == rbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         cout << "This is a definition of function without return." << endl;
         insymbol();
     } else {
@@ -419,27 +563,6 @@ void funcWithoutRetDef() {
     level--; // Back to ground
 }
 
-// ＜声明头部＞ ::=  int＜标识符＞ |char＜标识符＞ （返回值为标识符名）
-void defHead(type* returnType, char* identifier) {
-    char idName[100];
-
-    if (sy == intsy) {
-        *returnType = ints;
-        insymbol();
-    } else if (sy == charsy) {
-        *returnType = chars;
-        insymbol();
-    } else {
-        error(DefHeadErr); // Definition head error
-    }
-    if (sy == identi) {
-        strcpy(identifier, token);
-        insymbol();
-    } else {
-        error(IdLost); // Identifier lost
-    }
-}
-
 // ＜参数＞ ::= ＜参数表＞
 void parameter() {
     parameterTable();
@@ -447,7 +570,7 @@ void parameter() {
 
 // ＜参数表＞ ::=  ＜类型标识符＞＜标识符＞{,＜类型标识符＞＜标识符＞}
 void parameterTable() {
-    type paramType;
+    type paramType = voids;
 
     if (sy == intsy || sy == charsy) {
         if (sy == intsy) {
@@ -456,8 +579,10 @@ void parameterTable() {
             paramType = chars;
         }
         insymbol();
-    } else {
+    } else if (!skipFlag){
         error(TypeDefLost); // Type definition lost
+        symbol nexts[] = {comma, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         paramCount++;
@@ -468,10 +593,15 @@ void parameterTable() {
             error(IdRepeat); // Identifier repeatedly define
         }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {comma, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     while (sy == comma) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
         if (sy == intsy || sy == charsy) {
             if (sy == intsy) {
@@ -482,6 +612,8 @@ void parameterTable() {
             insymbol();
         } else {
             error(TypeDefLost); // Type definition lost
+            symbol nexts[] = {comma, rparent, lbrace, rbrace};
+            skipUntil(nexts);
         }
         if (sy == identi) {
             paramCount++;
@@ -491,8 +623,10 @@ void parameterTable() {
                 error(IdRepeat); // Identifier repeatedly define
             }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(IdLost); // Identifier lost
+            symbol nexts[] = {comma, rparent, lbrace, rbrace};
+            skipUntil(nexts);
         }
     }
 }
@@ -513,8 +647,10 @@ void mainDef() {
     level++;
     if (sy == voidsy) { // Manage definition head
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(VoidSyLost); // Void symbol lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == mainsy) {
         if (isDefinable(token)) {
@@ -523,27 +659,49 @@ void mainDef() {
             error(IdRepeat); // Identifier repeatedly define
         }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right parenthesis lost
+        symbol nexts[] = {lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftBraceLost); // Left brace lost
+        symbol nexts[] = {rbrace};
+        skipUntil(nexts);
     }
     insertInfix("FUNC", " ", "void", "main");
-    complexState(); // Manage complex statement
+    if (!skipFlag) {
+        complexState(); // Manage complex statement
+    }
     if (sy == rbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         popLocals();
         cout << "This is the main function." << endl;
         insymbol();
@@ -555,7 +713,7 @@ void mainDef() {
 
 // ＜因子＞ ::= ＜标识符＞｜＜标识符＞‘[’＜表达式＞‘]’｜＜整数＞|＜字符＞｜＜有返回值函数调用语句＞|‘(’＜表达式＞‘)’
 type factor(string &infixString) {
-    type firstType;
+    type firstType = voids;
 
     switch (sy) {
         case identi: {
@@ -567,26 +725,33 @@ type factor(string &infixString) {
             idIndex = lookUp(token);
             if (idIndex == -1) {
                 error(IdNotDefine); // Identifier is not defined
+            } else {
+                firstType = idTable[idIndex].typ;
             }
-            firstType = idTable[idIndex].typ;
             infixString = token; // Get variable name
             insymbol();
             if (sy == lbrack) { // Array
                 string arrayIndex;
-
-                if (idTable[idIndex].cls != vars || idTable[idIndex].length == 0) {
-                    error(IdKindNotMatch); // Identifier kind does not match
+                if (idIndex != -1) {
+                    if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                        || idTable[idIndex].length == 0) {
+                        error(IdKindNotMatch); // Identifier kind does not match
+                    }
                 }
                 insymbol();
-                expression(arrayIndex);
+                if (!skipFlag) {
+                    expression(arrayIndex);
+                }
                 if (sy == rbrack) { // Array finished
                     string tempVar = createTempVar();
                     insertTable(vars, firstType, tempVar.c_str(), idTable[idIndex].length, level, 0);
                     insertInfix("GETARR", infixString, arrayIndex, tempVar);
                     infixString = tempVar; // Return temp variable
                     insymbol();
-                } else {
+                } else if (!skipFlag) {
                     error(RightBrackLost); // Right bracket lost
+                    symbol nexts[] = {semicolon, rbrace};
+                    skipUntil(nexts);
                 }
             } else if (sy == lparent) { // Call function with return
                 if (idTable[idIndex].cls != funcs) {
@@ -595,9 +760,12 @@ type factor(string &infixString) {
                 charPtr = tempCharPtr;
                 ch = tempCh;
                 sy = tempSy;
-                funcWithRetCall(infixString); // infixString is the temp var assigned with return value
+                if (!skipFlag) {
+                    funcWithRetCall(infixString); // infixString is the temp var assigned with return value
+                }
             } else { // General identifier
-                if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+                if ((idTable[idIndex].cls != consts && idTable[idIndex].cls != vars && idTable[idIndex].cls != params) ||
+                        idTable[idIndex].length != 0) {
                     error(IdKindNotMatch); // Identifier kind not match
                 }
                 charPtr = tempCharPtr;
@@ -611,7 +779,9 @@ type factor(string &infixString) {
         case plus:
         case minus:
         case intcon: {
-            integer(infixString); // Get the number
+            if (!skipFlag) {
+                integer(infixString); // Get the number
+            }
             firstType = ints;
             break;
         }
@@ -622,17 +792,24 @@ type factor(string &infixString) {
             break;
         }
         case lparent: { // "(" expression ")"
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
             firstType = expression(infixString);
             if (sy == rparent) {
                 insymbol();
             } else {
                 error(RightParentLost); // Right parenthesis lost
+                symbol nexts[] = {semicolon, rbrace};
+                skipUntil(nexts);
             }
             break;
         }
         default:
             error(IllegalFact); // Illegal factor
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
     }
     return firstType;
 }
@@ -640,10 +817,10 @@ type factor(string &infixString) {
 // ＜项＞ ::= ＜因子＞{＜乘法运算符＞＜因子＞}
 type term(string &infixString) {
     type firstType = factor(infixString);
-    type tempType;
-    string tempOperand;
-    string tempVariable;
-    string ioperator;
+    type tempType = voids;
+    string tempOperand = "";
+    string tempVariable = "";
+    string ioperator = "";
 
     while (sy == times || sy == idiv) {
         ioperator = sy == times ? "MUL" : "DIV";
@@ -662,17 +839,19 @@ type term(string &infixString) {
 
 // ＜表达式＞ ::= ［＋｜－］＜项＞{＜加法运算符＞＜项＞}
 type expression(string &infixString) { // infixString here must be a variable or value
-    type firstType;
-    type tempType;
-    symbol tempSy;
-    string tempOperand;
-    string tempVariable;
+    type firstType = voids;
+    type tempType = voids;
+    symbol tempSy = voidsy;
+    string tempOperand = "";
+    string tempVariable = "";
 
     if (sy == plus || sy == minus) {
-        sy = tempSy;
+        tempSy = sy;
         insymbol();
     }
-    firstType = term(infixString);
+    if (!skipFlag) {
+        firstType = term(infixString);
+    }
     if (tempSy == minus) { // Head is a minus, should get a negative variable
         tempVariable = createTempVar();
         insertTable(vars, ints, tempVariable.c_str(), 0, level, 0);
@@ -697,25 +876,31 @@ type expression(string &infixString) { // infixString here must be a variable or
 
 // ＜赋值语句＞ ::= ＜标识符＞＝＜表达式＞|＜标识符＞‘[’＜表达式＞‘]’=＜表达式＞
 void assignState() {
-    string leftToEqual;
-    string rightToEqual;
-    int idIndex;
-    type firstType;
-    type secondType;
+    string leftToEqual = "";
+    string rightToEqual = "";
+    int idIndex = -1;
+    type firstType = voids;
+    type secondType = voids;
 
     if (sy == identi) {
         if ((idIndex = lookUp(token)) == -1) {
             error(IdNotDefine); // Identifier is not defined
+        } else {
+            firstType = idTable[idIndex].typ;
         }
-        firstType = idTable[idIndex].typ;
         leftToEqual = token; // Get left variable's name
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
-    if (sy == becomes) { // General variable
-        if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
-            error(IdKindNotMatch); // Identifier kind not match
+    if (sy == becomes) { // General variable or parameter
+        if (idIndex != -1) {
+            if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                || idTable[idIndex].length != 0) {
+                error(IdKindNotMatch); // Identifier kind not match
+            }
         }
         insymbol();
         secondType = expression(rightToEqual);
@@ -727,40 +912,53 @@ void assignState() {
     } else if (sy == lbrack) { // Array
         string arrayIndex;
 
-        if (idTable[idIndex].cls != vars || idTable[idIndex].length == 0) {
-            error(IdKindNotMatch); // Identifier kind does not match
+        if (idIndex != -1) {
+            if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                || idTable[idIndex].length == 0) {
+                error(IdKindNotMatch); // Identifier kind does not match
+            }
         }
         insymbol();
         expression(arrayIndex);
         if (sy == rbrack) {
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(RightBrackLost); // Right bracket lost
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
         }
         if (sy == becomes) {
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(BecomesSyLost); // Becomes symbol lost
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
         }
-        secondType = expression(rightToEqual);
+        if (!skipFlag) {
+            secondType = expression(rightToEqual);
+        }
         if (firstType != secondType) {
             warn(0); // Type conflicts
         }
         insertInfix("SETARR", rightToEqual, arrayIndex, leftToEqual);
         cout << "This is an assignment statement." << endl;
-    } else {
+    } else if (!skipFlag) {
         error(BecomesSyLost); // Becomes symbol lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
 
 }
 
 // ＜条件＞ ::= ＜表达式＞＜关系运算符＞＜表达式＞｜＜表达式＞
 void judgement(string &infixString) {
-    string compareLeft;
-    string compareRight;
-    symbol compareSy;
+    string compareLeft = "";
+    string compareRight = "";
+    symbol compareSy = eql;
 
-    expression(compareLeft);
+    if (!skipFlag) {
+        expression(compareLeft);
+    }
     if (isCompare(sy)) { // Optional branch
         compareSy = sy;
         insymbol();
@@ -794,30 +992,46 @@ void judgement(string &infixString) {
 
 // ＜条件语句＞ ::= if ‘(’＜条件＞‘)’＜语句＞［else＜语句＞］
 void ifState() {
-    string judgeResult;
-    string firstLabel;
-    string secondLabel;
+    string judgeResult = "";
+    string firstLabel = "";
+    string secondLabel = "";
 
     if (sy == ifsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IfSyLost); // If symbol lost
+        symbol nexts[] = {lparent, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
-    judgement(judgeResult);
+    if (!skipFlag) {
+        judgement(judgeResult);
+    }
     firstLabel = "LABEL" + toString(labelIndex);
     labelIndex++;
     insertInfix("BEQ", judgeResult, "0", firstLabel); // If judgement = 0 then jump firstLabel
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right parenthesis lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
-    statement();
+    if (!skipFlag) {
+        statement();
+    }
     secondLabel = "LABEL" + toString(labelIndex);
     labelIndex++;
     insertInfix("JMP", " ", " ", secondLabel); // Jump the else (If not, jump the next label)
@@ -834,66 +1048,92 @@ void ifState() {
 
 // ＜循环语句＞ ::= for‘(’＜标识符＞＝＜表达式＞;＜条件＞;＜标识符＞＝＜标识符＞(+|-)＜步长＞‘)’＜语句＞
 void loopState() {
-    string idNameString;
-    string idNameString2;
-    string expressionString;
-    string judgeResult;
-    string judgeLabel;
-    string increaseLabel;
-    string bodyLabel;
-    string endLabel;
+    string idNameString = "";
+    string idNameString2 = "";
+    string expressionString = "";
+    string judgeResult = "";
+    string judgeLabel = "";
+    string increaseLabel = "";
+    string bodyLabel = "";
+    string endLabel = "";
 
-    int idIndex;
+    int idIndex = -1;
 
     if (sy == forsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(ForSyLost); // For symbol lost
+        symbol nexts[] = {lparent, semicolon, rparent, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
     } else {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {semicolon, rparent, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
             error(IdNotDefine); // Identifier is not defined
-        } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+        } else if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                   || idTable[idIndex].length != 0) {
             error(IdKindNotMatch); // Identifier does not match
         }
         idNameString = token;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {semicolon, rparent, rbrace};
+        skipUntil(nexts);
     }
     if (sy == becomes) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(BecomesSyLost); // Becomes symbol lost
+        symbol nexts[] = {semicolon, rparent, rbrace};
+        skipUntil(nexts);
     }
-    expression(expressionString);
+    if (!skipFlag) {
+        expression(expressionString);
+    }
     insertInfix("ASSIGN", " ", expressionString, idNameString);
     bodyLabel = labelStr + toString(labelIndex);
     labelIndex++;
     insertInfix("JMP", " ", " ", bodyLabel);
     if (sy == semicolon) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(SemicolonLost); // Semicolon lost
+        symbol nexts[] = {semicolon, rparent, rbrace};
+        skipUntil(nexts);
     }
     judgeLabel = labelStr + toString(labelIndex);
     labelIndex++;
     insertInfix("LABEL", " ", " ", judgeLabel);
-    judgement(judgeResult);
+    if (!skipFlag) {
+        judgement(judgeResult);
+    }
     insertInfix("BNE", judgeResult, "0", bodyLabel); // Jump to body
     endLabel = labelStr + toString(labelIndex);
     labelIndex++;
     insertInfix("BEQ", judgeResult, "0", endLabel); // Jump to end
     if (sy == semicolon) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
     } else {
         error(SemicolonLost); // Semicolon lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     increaseLabel = labelStr + toString(labelIndex);
     ++labelIndex;
@@ -901,36 +1141,46 @@ void loopState() {
     if (sy == identi) {
         if (idIndex == -1) {
             error(IdNotDefine); // Identifier is not defined
-        } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+        } else if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                   || idTable[idIndex].length != 0) {
             error(IdKindNotMatch); // Identifier kind does not match
         }
         idNameString = token;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == becomes) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(BecomesSyLost); // Becomes symbol lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         if (idIndex == -1) {
             error(IdNotDefine); // Identifier is not defined
-        } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+        } else if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                   || idTable[idIndex].length != 0) {
             error(IdKindNotMatch); // Identifier kind does not match
         }
         idNameString2 = token;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     string ioperator;
     if (sy == plus || sy == minus) {
-        ioperator = sy == plus ? "ADD" : "MINUS";
+        ioperator = sy == plus ? "ADD" : "SUB";
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(PlusLost); // Plus or minus lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == intcon) {
         if (inum != 0) {
@@ -939,17 +1189,26 @@ void loopState() {
         } else {
             error(StepLenZero); // Step length couldn't be 0
         }
-    } else {
+    } else if (!skipFlag) {
         error(StepLenLost); // Step length lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     insertInfix("JMP", " ", " ", judgeLabel);
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right parenthesis lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
     insertInfix("LABEL", " ", " ", bodyLabel);
-    statement();
+    if (!skipFlag) {
+        statement();
+    }
     insertInfix("JMP", " ", " ", increaseLabel);
     insertInfix("LABEL", " ", " ", endLabel);
     cout << "This is a loop statement." << endl;
@@ -957,35 +1216,59 @@ void loopState() {
 
 // ＜情况语句＞ ::= switch ‘(’＜表达式＞‘)’ ‘{’＜情况表＞＜缺省＞‘}’
 void conditionState() {
-    string switchElement;
-    string endLabel;
+    string switchElement = "";
+    string endLabel = "";
 
     if (sy == switchsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(SwitchSyLost); // Switch symbol lost
+        symbol nexts[] = {lparent, rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, lbrace, rbrace};
+        skipUntil(nexts);
     }
     type firstType = expression(switchElement);
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right parenthesis lost
+        symbol nexts[] = {lbrace, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftBraceLost); // Left brace lost
+        symbol nexts[] = {rbrace};
+        skipUntil(nexts);
     }
     endLabel = labelStr + toString(labelIndex);
     labelIndex++;
-    conditionTable(firstType, switchElement, endLabel);
-    conditionDefault();
+    if (!skipFlag) {
+        conditionTable(firstType, switchElement, endLabel);
+    }
+    if (!skipFlag) {
+        conditionDefault();
+    }
     if (sy == rbrace) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         cout << "This is a condition statement." << endl;
         insymbol();
     } else {
@@ -1003,13 +1286,15 @@ void conditionTable(type firstType, string switchElement, string endSwitchLabel)
 
 // ＜情况子语句＞ ::= case＜常量＞:＜语句＞
 void conditionBranch(type firstType, string switchElement, string endSwitchLabel) {
-    string caseElement;
-    string nextCaseLabel;
+    string caseElement = "";
+    string nextCaseLabel = "";
 
     if (sy == casesy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(CaseSyLost); // Case symbol lost
+        symbol nexts[] = {colon, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == charcon) { // Char const
         if (firstType != chars) {
@@ -1035,19 +1320,30 @@ void conditionBranch(type firstType, string switchElement, string endSwitchLabel
             insymbol();
         } else {
             error(CaseNotCon); // Case element not a constant
+            symbol nexts[] = {colon, semicolon, rbrace};
+            skipUntil(nexts);
         }
-    } else {
+    } else if (!skipFlag) {
         error(CaseNotCon); // Case element not a constant
+        symbol nexts[] = {colon, semicolon, rbrace};
+        skipUntil(nexts);
     }
     nextCaseLabel = labelStr + toString(labelIndex);
     labelIndex++;
     insertInfix("BNE", switchElement, caseElement, nextCaseLabel); // Jump to next case
     if (sy == colon) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag){
         error(ColonLost); // Colon lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
-    statement();
+    if (!skipFlag) {
+        statement();
+    }
     insertInfix("JMP", " ", " ", endSwitchLabel);
     insertInfix("LABEL", " ", " ", nextCaseLabel);
 }
@@ -1056,21 +1352,30 @@ void conditionBranch(type firstType, string switchElement, string endSwitchLabel
 void conditionDefault() {
     if (sy == defaultsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(DefaultSyLost); // Default symbol lost
+        symbol nexts[] = {colon, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == colon) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(ColonLost); // Colon lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
-    statement();
+    if (!skipFlag) {
+        statement();
+    }
 }
 
 // ＜有返回值函数调用语句＞ ::= ＜标识符＞‘(’＜值参数表＞|<空>‘)’
 void funcWithRetCall(string &infixString) {
-    string funcName;
-    int idIndex;
+    string funcName = "";
+    int idIndex = -1;
 
     if (sy == identi) {
         idIndex = lookUp(token);
@@ -1081,34 +1386,53 @@ void funcWithRetCall(string &infixString) {
         }
         funcName = token;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {lparent, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == rparent) { // Function without parameters
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
     } else { // Function with parameters
-        valueParamTable(idIndex);
+        if (!skipFlag) {
+            valueParamTable(idIndex);
+        }
         if (sy == rparent) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(RightParentLost); // Right parenthesis lost
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
         }
     }
     insertInfix("CALL", " ", " ", funcName);
     infixString = createTempVar();
-    insertTable(vars, idTable[idIndex].typ, infixString.c_str(), 0, level, 0);
+    if (idIndex != -1) {
+        insertTable(vars, idTable[idIndex].typ, infixString.c_str(), 0, level, 0);
+    }
     insertInfix("ASSIGN", " ", "#RET", infixString);
 }
 
 // ＜无返回值函数调用语句＞ ::= ＜标识符＞‘(’＜值参数表＞|<空>‘)’
 void funcWithoutRetCall() {
-    string funcName;
-    int idIndex;
+    string funcName = "";
+    int idIndex = -1;
 
     if (sy == identi) {
         idIndex = lookUp(token);
@@ -1117,24 +1441,41 @@ void funcWithoutRetCall() {
         } else if (idTable[idIndex].cls != funcs) {
             error(IdKindNotMatch); // Identifier kind does not match
         }
-        funcName= token;
+        funcName = token;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(IdLost); // Identifier lost
+        symbol nexts[] = {lparent, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
     } else {
-        valueParamTable(idIndex);
+        if (!skipFlag) {
+            valueParamTable(idIndex);
+        }
         if (sy == rparent) {
+            if (skipFlag) {
+                skipFlag = false;
+            }
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(RightParentLost); // Right parenthesis lost
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
         }
     }
     insertInfix("CALL", " ", " ", funcName);
@@ -1145,10 +1486,12 @@ void valueParamTable(int idIndex) {
     int valueParamIndex = 1;
     tabElement function = idTable[idIndex];
     int funcIndex = lookUpStatic(function.name); // Index in static table
-    type secondType;
-    string infixString;
+    type secondType = voids;
+    string infixString = "";
 
-    secondType = expression(infixString);
+    if (!skipFlag) {
+        secondType = expression(infixString);
+    }
     if (valueParamIndex <= function.length) {
         if (staticTable[funcIndex + valueParamIndex].typ != secondType) {
             warn(0); // Type conflicts
@@ -1159,8 +1502,13 @@ void valueParamTable(int idIndex) {
     }
     valueParamIndex++;
     while (sy == comma) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-        secondType = expression(infixString);
+        if (!skipFlag) {
+            secondType = expression(infixString);
+        }
         if (valueParamIndex <= function.length) {
             if (staticTable[funcIndex + valueParamIndex].typ != secondType) {
                 warn(0); // Type conflicts
@@ -1176,13 +1524,15 @@ void valueParamTable(int idIndex) {
 // ＜返回语句＞ ::= return[‘(’＜表达式＞‘)’]
 void returnState() {
     type firstType = idTable[findCurrentFunc()].typ;
-    type secondType;
-    string returnString;
+    type secondType = voids;
+    string returnString = "";
 
     if (sy == returnsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(ReturnSyLost); // Return symbol lost
+        symbol nexts[] = {lparent, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) { // Optional branch
         insymbol();
@@ -1194,51 +1544,66 @@ void returnState() {
             insertInfix("RETURN", " ", " ", returnString);
             cout << "This is a return statement." << endl;
             insymbol();
-        } else {
+        } else if (!skipFlag) {
             error(RightParentLost); // Right parenthesis lost
+            symbol nexts[] = {semicolon, rbrace};
+            skipUntil(nexts);
         }
     } else {
         insertInfix("RETURN", " ", " ", " "); // Return null
         cout << "This is a return statement." << endl;
     }
-
 }
 
 // ＜读语句＞ ::= scanf ‘(’＜标识符＞{,＜标识符＞}‘)’
 void scanfState() {
-    int idIndex;
-    string scanString;
+    int idIndex = -1;
+    string scanString = "";
 
     if (sy == scanfsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(ScanfSyLost); // Scanf symbol lost
+        symbol nexts[] = {lparent, comma, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {comma, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == identi) {
         idIndex = lookUp(token);
         if (idIndex == -1) {
             error(IdNotDefine); // Identifier is not defined
-        } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+        } else if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                   || idTable[idIndex].length != 0) {
             error(IdKindNotMatch); // Identifier kind does not match
         }
         scanString = token;
         insertInfix("SCANF", " ", " ", scanString);
         insymbol();
-    } else {
+    } else if (!skipFlag){
         error(IdLost); // Identifier lost
+        symbol nexts[] = {comma, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
 
     while (sy == comma){
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
         if (sy == identi) {
             if (idIndex == -1) {
                 error(IdNotDefine); // Identifier is not defined
-            } else if (idTable[idIndex].cls != vars || idTable[idIndex].length != 0) {
+            } else if ((idTable[idIndex].cls != vars && idTable[idIndex].cls != params)
+                       || idTable[idIndex].length != 0) {
                 error(IdKindNotMatch); // Identifier kind does not match
             }
             scanString = token;
@@ -1246,32 +1611,45 @@ void scanfState() {
             insymbol();
         } else {
             error(IdLost); // Identifier lost
+            symbol nexts[] = {comma, rparent, semicolon, rbrace};
+            skipUntil(nexts);
         }
     }
-
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         cout << "This is a scanf statement." << endl;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right parenthesis lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
 }
 
 // ＜写语句＞ ::= printf ‘(’ ＜字符串＞,＜表达式＞ ‘)’| printf ‘(’＜字符串＞‘)’| printf ‘(’＜表达式＞‘)’
 void printfState() {
-    type expressionType;
+    type expressionType = voids;
     string generalString = " "; // If there's no expression, space with take over it
     string expressionString = " ";
 
     if (sy == printfsy) {
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(PrintfSyLost); // Printf symbol lost
+        symbol nexts[] = {lparent, comma, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == lparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(LeftParentLost); // Left parenthesis lost
+        symbol nexts[] = {comma, rparent, semicolon, rbrace};
+        skipUntil(nexts);
     }
     if (sy == stringcon) { // First two branches
         generalString = str;
@@ -1282,14 +1660,21 @@ void printfState() {
             expressionType = expression(expressionString);
         }
     } else { // Last branch
-        expressionType = expression(expressionString);
+        if (!skipFlag) {
+            expressionType = expression(expressionString);
+        }
     }
     if (sy == rparent) {
+        if (skipFlag) {
+            skipFlag = false;
+        }
         insertInfix("PRINTF", " ", generalString, expressionString);
         cout << "This is a printf statement." << endl;
         insymbol();
-    } else {
+    } else if (!skipFlag) {
         error(RightParentLost); // Right prenthesis lost
+        symbol nexts[] = {semicolon, rbrace};
+        skipUntil(nexts);
     }
 }
 
@@ -1297,7 +1682,7 @@ void printfState() {
 | ＜无返回值函数调用语句＞;｜＜赋值语句＞;｜＜读语句＞;｜＜写语句＞;|＜情况语句＞｜
  ＜返回语句＞;｜＜空＞;*/
 void statement() {
-    string emptyString;
+    string emptyString = "";
 
     switch (sy) {
         case ifsy:
