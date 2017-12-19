@@ -1488,6 +1488,9 @@ void valueParamTable(int idIndex) {
     int funcIndex = lookUpStatic(function.name); // Index in static table
     type secondType = voids;
     string infixString = "";
+    std::vector<string> parameterStrings;
+
+    parameterStrings.reserve(10);
 
     if (!skipFlag) {
         secondType = expression(infixString);
@@ -1496,7 +1499,7 @@ void valueParamTable(int idIndex) {
         if (staticTable[funcIndex + valueParamIndex].typ != secondType) {
             warn(0); // Type conflicts
         }
-        insertInfix("PUSH", " ", " ", infixString);
+        parameterStrings.push_back(infixString); // Store parameter string for later output
     } else {
         error(ParamCountExceed); // Parameter count exceeds
     }
@@ -1513,11 +1516,14 @@ void valueParamTable(int idIndex) {
             if (staticTable[funcIndex + valueParamIndex].typ != secondType) {
                 warn(0); // Type conflicts
             }
-            insertInfix("PUSH", " ", " ", infixString);
+            parameterStrings.push_back(infixString); // Store parameter string for later output
         } else {
             error(ParamCountExceed); // Parameter count exceeds
         }
         valueParamIndex++;
+    }
+    for (int i = 0; i < parameterStrings.size(); ++i) {
+        insertInfix("PUSH", " ", " ", parameterStrings[i]);
     }
 }
 
