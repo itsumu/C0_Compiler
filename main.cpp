@@ -74,7 +74,10 @@ void setup() {
 
 int main(int argc, char* argv[]) {
     setup();
-    inputFile.open("test.txt", ios::in);
+    string filename;
+    cout << "Please input file name (path included): ";
+    cin >> filename;
+    inputFile.open(filename, ios::in);
     program();
     if (errorFlag) {
         return 0;
