@@ -17,6 +17,8 @@ int funcIndex = 0;
 string currentFunc;
 std::vector<string> stringLabels;
 string mipsCodes = "";
+int globalAddr = 0;
+
 
 inline bool isGlobal(int index) {
     return (staticTable[index].level == 0);
@@ -128,17 +130,26 @@ void thirdOperandToMemory(string operand3, string registerName) {
     insertCode("sw " + registerName + ", " + toString(op3Offset) + rootRegister); // Store
 }
 
-// Add to stack where $gp + offset points
+// Push one zero to global stack where $gp + offset points
 void pushGlobalStack() {
-    static int addr = 0;
-    insertCode("sw $0, " + toString(4 * addr) + "($gp)");
-    ++addr;
+    ++globalAddr;
 }
 
-// Add to stack where $fp + offset points
+// Push zeros to local stack with size of count
+void pushGlobalStack(int count) {
+    for (int i = 0; i < count; ++i) {
+        ++globalAddr;
+    }
+}
+
+// Push one zero to local stack where $fp + offset points
 void pushLocalStack() {
-    insertCode("sw $0, ($sp)");
     insertCode("sub $sp, $sp, 4");
+}
+
+// Push zeros to local stack with size of count
+void pushLocalStack(int count) {
+    insertCode("sub $sp, $sp, " + toString(4 * count));
 }
 
 // Manage variable and store it into stack from $gp or $fp
@@ -146,14 +157,22 @@ void mipsVarDef(bool isGlobal) {
     if (isGlobal) { // Push global variable into stack started from $gp
         for (int i = 0; i < staticTable.size() && staticTable[i].cls != funcs; ++i) {
             if (staticTable[i].cls == vars) {
-                pushGlobalStack();
+                if (staticTable[i].length == 0) { // General variable
+                    pushGlobalStack();
+                } else { // Array
+                    pushGlobalStack(staticTable[i].length);
+                }
             }
         }
     } else { // Push local variable into stack started from $fp
         int startIndex = lookUpStatic(currentFunc.c_str());
         for (int i = startIndex + 1; i < staticTable.size() && staticTable[i].cls != funcs ; ++i) {
             if (staticTable[i].cls == vars) {
-                pushLocalStack();
+                if (staticTable[i].length == 0) { // General variable
+                    pushLocalStack();
+                } else { // Array
+                    pushLocalStack(staticTable[i].length);
+                }
             }
         }
     }
@@ -310,11 +329,12 @@ void funcContent() {
             int op3Offset;
 
             operandsToRegister(notation); // Get index & store it in $t2. Get value $ store it in $t1
-            insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex3)) { // Array is local
+                insertCode("mul $t2, $t2, -4"); // Calculate extra offset of array
                 op3Offset = getLocalOffset(notation.operand3); // Array head
                 insertCode("add $t3, $fp, " + toString(op3Offset)); // Get base offset
             } else { // Array is global
+                insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
                 op3Offset = getGlobalOffset(notation.operand3);
                 insertCode("add $t3, $gp, " + toString(op3Offset));
             }
@@ -324,11 +344,12 @@ void funcContent() {
             int op1Offset;
 
             secondOperandToRegister(notation.operand2); // Get index & store it in $t2. Get value $ store it in $t1
-            insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
             if (!isGlobal(staticIndex1)) { // Array is local
+                insertCode("mul $t2, $t2, -4"); // Calculate extra offset of array
                 op1Offset = getLocalOffset(notation.operand1); // Array head
-                insertCode("add $t3, $sp, " + toString(op1Offset)); // Get base offset
+                insertCode("add $t3, $fp, " + toString(op1Offset)); // Get base offset
             } else { // Array is global
+                insertCode("mul $t2, $t2, 4"); // Calculate extra offset of array
                 op1Offset = getGlobalOffset(notation.operand1);
                 insertCode("add $t3, $gp, " + toString(op1Offset));
             }
