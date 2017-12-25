@@ -744,7 +744,7 @@ type factor(string &infixString) {
                 }
                 if (sy == rbrack) { // Array finished
                     string tempVar = createTempVar();
-                    insertTable(vars, firstType, tempVar.c_str(), idTable[idIndex].length, level, 0);
+                    insertTable(vars, firstType, tempVar.c_str(), 0, level, 0);
                     insertInfix("GETARR", infixString, arrayIndex, tempVar);
                     infixString = tempVar; // Return temp variable
                     insymbol();
