@@ -10,6 +10,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <set>
 #include <cstring>
 #include <cstdlib>
 #include "tools.h"
@@ -187,6 +188,9 @@ void integer(string &infixString);
 void insertInfix(string ioperator, string operand1, string operand2, string operand3);
 void outputInfixes();
 string createTempVar();
+
+// Infixes optimization
+void optimizeInfixes();
 
 // Target code generations
 void mipsProgram(string mipsFileName);

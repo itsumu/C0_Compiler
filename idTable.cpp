@@ -18,7 +18,11 @@ void insertTable(kind cls, type typ, const char name[], int length, int level, i
             element.addr = addr;
         } else if (cls == vars){
             element.addr = addressIndex;
-            ++addressIndex;
+            if (length != 0) { // Array
+                addressIndex = addressIndex + length;
+            } else {
+                addressIndex++;
+            }
         } else { // Function or main
             element.addr = 0;
             addressIndex = startIndex;

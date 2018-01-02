@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
     if (errorFlag) {
         return 0;
     }
+//    optimizeInfixes();
     mipsProgram("mipsCode.asm");
     return 0;
 }
