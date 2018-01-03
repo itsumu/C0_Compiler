@@ -46,6 +46,13 @@ inline bool isVarName(string operand) {
     return false;
 }
 
+inline bool isAlpha(string content) {
+    if (content[0] == '_' || (content[0] > 'a' && content[0] < 'z') || (content[0] > 'A' && content[0] < 'Z')) {
+        return true;
+    }
+    return false;
+}
+
 DAGNode* findNodeWithNumber(int number) {
     for (int i = 0; i < allNodes.size(); ++i) {
         if (allNodes[i]->number == number) {
@@ -404,14 +411,7 @@ void exportCodesFromDAG() {
             if (originalIdIndex == -1) { // Global identifier
                 originalIdIndex = lookUp(varName.c_str());
             }
-            tabElement tempElement;
-            strcpy(tempElement.name,newVarName.c_str());
-            tempElement.cls = vars;
-            tempElement.typ = staticTable[originalIdIndex].typ;
-            tempElement.addr = 0;
-            tempElement.length = 0;
-            tempElement.level = 1;
-            staticTable.insert(staticTable.begin() + insertIndex, tempElement);
+            insertStatic(currentFunc2, vars, staticTable[originalIdIndex].typ, newVarName.c_str(), 0, 1); // Insert table
 
             // Output a0 = a
             insertNewInfix("ASSIGN", " ", varName, newVarName);
@@ -458,30 +458,31 @@ void exportCodesFromDAG() {
             }
         }
         if (varsToStay.size() == 0) { // No crossing blocks variables
+            string varName;
             if (varsToLeave.size() != 0) { // There are still other choices, choose the first one to stay
-                string varName = *varNodes.begin();
-
+                varName = *varNodes.begin();
                 varsToStay.insert(varName);
                 varsToLeave.erase(varsToLeave.find(varName));
-
-                // Insert new infix notation
-                string operand1;
-                string operand2;
-                if (leftChild == NULL) {
-                    operand1 = " ";
-                } else {
-                    operand1 = leftChild->content;
-                }
-                if (rightChild == NULL) {
-                    operand2 = " ";
-                } else {
-                    operand2 = rightChild->content;
-                }
-                insertNewInfix(node->content, operand1, operand2, varName);
             } else { // No variables corresponding with this node, create a new one & insert it to staticTable
-                string varName = createTempVar();
-
+                varName = createTempVar();
+                varsToStay.insert(varName);
+                insertStatic(currentFunc2, vars, ints, varName.c_str(), 0, 1); // Type is not important, int can be ok
             }
+
+            // Insert new infix notation
+            string operand1;
+            string operand2;
+            if (leftChild == NULL) {
+                operand1 = " ";
+            } else {
+                operand1 = leftChild->content;
+            }
+            if (rightChild == NULL) {
+                operand2 = " ";
+            } else {
+                operand2 = rightChild->content;
+            }
+            insertNewInfix(node->content, operand1, operand2, varName);
         } else { // Choose the first one as result of calculation & assign it to others
             infixNotation notation;
             string varName = *varsToStay.begin();
@@ -518,7 +519,46 @@ void exportCodesFromDAG() {
         for (tempIt3 = varsToLeave.begin(); tempIt3 != varsToLeave.end(); ++tempIt3) {
             string varName = *tempIt3;
             int staticIndex = lookUpStatic(currentFunc2.c_str(), varName.c_str());
-            staticTable.erase(staticTable.begin() + staticIndex);
+            if (staticIndex != -1) { // Prevent repeat deletion
+                staticTable.erase(staticTable.begin() + staticIndex);
+            }
+        }
+    }
+}
+
+// Resettle address of elements in static table
+void resettleTableAddr() {
+    int staticIndex;
+    for (staticIndex = 0; staticTable[staticIndex].cls != funcs ; ++staticIndex); // Skip all globals
+
+    // Following address should be resettled
+    int currentAddr = 0;
+    for (; staticIndex < staticTable.size(); ++staticIndex) {
+        tabElement* element = &staticTable[staticIndex];
+
+        if (element->cls == funcs) { // Skip functions
+            continue;
+        }
+        if (staticTable[staticIndex - 1].cls == funcs) { // Last one is a function
+            if (element->cls == consts) { // Const, reserve its addr
+                currentAddr = 0;
+            } else { // Parameter or variable
+                element->addr = 0;
+                if (element->cls == vars && element->length != 0) { // Array
+                    currentAddr = element->length;
+                } else { // Parameter or general variable
+                    currentAddr = 1;
+                }
+            }
+        } else { // Last one isn't function
+            if (element->cls == consts) { // Const, do nothing
+            } else if (element->cls == vars && element->length != 0) { // Array
+                element->addr = currentAddr;
+                currentAddr += element->length;
+            } else {  // Parameter or general variable
+                element->addr = currentAddr;
+                ++currentAddr;
+            }
         }
     }
 }
@@ -526,6 +566,7 @@ void exportCodesFromDAG() {
 void optimizeInfixes() {
     // Get variables crossing basic blocks
     splitBlocks();
+
     // Draw DAG & operate optimization
     newInfixTable.reserve(infixTable.size());
     for (int i = 0; i < infixTable.size(); ++i) {
@@ -555,6 +596,9 @@ void optimizeInfixes() {
         allNodes.clear();
         varNodeTable.clear();
     }
+
+    // Resettle staticTable elements' address
+    resettleTableAddr();
 
     // Replace elements in infix table with that in new one
     infixTable.clear();

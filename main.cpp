@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 //    optimizeInfixes();
+//    printTable();
     mipsProgram("mipsCode.asm");
     return 0;
 }

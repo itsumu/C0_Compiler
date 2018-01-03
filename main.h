@@ -29,7 +29,7 @@ const int maxIdentLength = 100;
 const int maxLineLength = 100;
 const int keywordCount = 14;
 const int maxDigit = 15;
-const int maxInt = 32767; // 2 ^ 15-1
+const int maxInt = 100000000;
 
 // Types
 typedef char alpha[maxIdentLength + 1]; // Alphabet letter should be restricted to maxIdentLength
@@ -140,6 +140,7 @@ void insymbol(); // Read one symbol, sy stores symbol type, inum stores contents
 
     // Table actions
 void insertTable(kind cls, type typ, const char name[], int length, int level, int addr);
+void insertStatic(string function, kind cls, type typ, const char name[], int length, int level);
 void popElement();
 void popLocals();
 int lookUp(const char *name); // Return index of identifier in table
