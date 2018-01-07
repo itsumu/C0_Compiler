@@ -608,7 +608,7 @@ void optimizeInfixes() {
     }
 
     // Output to file
-    betterInfixFile.open("better_infixes.txt", ios::out);
+    betterInfixFile.open("betterInfixes.txt", ios::out);
     betterInfixFile << newOutputBuff;
     betterInfixFile.close();
 }

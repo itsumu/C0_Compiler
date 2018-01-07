@@ -82,9 +82,10 @@ int main(int argc, char* argv[]) {
     if (errorFlag) {
         return 0;
     }
-//    optimizeInfixes();
+    optimizeInfixes();
 //    printTable();
     mipsProgram("mipsCode.asm");
+    optMipsProgram("betterMips.asm");
     return 0;
 }
 

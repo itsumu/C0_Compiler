@@ -13,6 +13,7 @@
 #include <set>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 #include "tools.h"
 
 using std::cin;
@@ -111,7 +112,7 @@ extern symbol sy;
 extern int inum;
 extern char str[];
 extern int level;
-extern fstream inputFile, infixFile, mipsFile;
+extern fstream inputFile, infixFile;
 
 // Lengths for global variables
 extern int lineLength; // Currently reading line length
@@ -195,25 +196,8 @@ void optimizeInfixes();
 
 // Target code generations
 void mipsProgram(string mipsFileName);
-void mipsDef();
-void mipsAssign();
-void mipsAdd();
-void mipsSub();
-void mipsMul();
-void mipsDiv();
-void mipsSeq();
-void mipsSne();
-void mipsSlt();
-void mipsSle();
-void mipsSgt();
-void mipsSge();
-void mipsBeq();
-void mipsBne();
-void mipsJ(string label);
-void mipsJal();
-void mipsJr();
-void mipsPrint();
-void mipsScan();
 
+// Mips codes optimization
+void optMipsProgram(string mipsFileName);
 
 #endif //C0_COMPILER_MAIN_H
