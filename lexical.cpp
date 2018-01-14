@@ -231,7 +231,12 @@ void insymbol() {
     } else if (ch == EOF) {
         printTable();
         outputInfixes();
-        printf("Compiling finished.");
+        if (errorFlag) {
+            cout << "Compiling failed" << endl;
+            exit(0);
+        } else {
+            cout << "Compiling succeeded." << endl;
+        }
         return;
     } else {
         error(UnknownWord); // Illegal character head

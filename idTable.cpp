@@ -18,7 +18,11 @@ void insertTable(kind cls, type typ, const char name[], int length, int level, i
             element.addr = addr;
         } else if (cls == vars){
             element.addr = addressIndex;
-            ++addressIndex;
+            if (length != 0) { // Array
+                addressIndex = addressIndex + length;
+            } else {
+                addressIndex++;
+            }
         } else { // Function or main
             element.addr = 0;
             addressIndex = startIndex;
@@ -49,6 +53,37 @@ void insertTable(kind cls, type typ, const char name[], int length, int level, i
         idTable.push_back(element);
         staticTable.push_back(element);
     }
+}
+
+// Only available for local variables, address can be get according to last element
+void insertStatic(string function, kind cls, type typ, const char name[], int length, int level) {
+    tabElement element;
+    int insertIndex;
+
+    // Set insertIndex to tail of function block
+    insertIndex = lookUpStatic(function.c_str());
+    if (insertIndex != staticTable.size() - 1) {
+        insertIndex++;
+    }
+    for (; staticTable[insertIndex].cls != funcs && insertIndex < staticTable.size();
+         ++insertIndex);
+    insertIndex--;
+    // Get address according to last element
+    tabElement lastElement = staticTable[insertIndex];
+    if (lastElement.cls == funcs) { // Last one is function
+        element.addr = 0;
+    }
+    else if (lastElement.cls != vars || lastElement.length == 0) { // Last one is not array
+        element.addr = lastElement.addr + 1;
+    } else { // Last one is array
+        element.addr = lastElement.addr + lastElement.length;
+    }
+    strcpy(element.name, name);
+    element.cls = cls;
+    element.typ = typ;
+    element.length = length;
+    element.level = level;
+    staticTable.insert(staticTable.begin() + insertIndex, element);
 }
 
 void popElement() {
@@ -135,38 +170,38 @@ int findCurrentFunc() {
 
 void printTable(){
     cout << endl;
-    cout << "--------------------Identifier Table-------------------" << endl;
-    cout << "Name      "
-         << "Kind      "
-         << "Type      "
-         << "Address   "
-         << "Length    "
-         << "Level     "
+    cout << "----------------------------------Identifier Table---------------------------------" << endl;
+    cout << "Name           "
+         << "Kind           "
+         << "Type           "
+         << "Address        "
+         << "Length         "
+         << "Level          "
          << endl;
     for (int i = 0; i < idTable.size(); ++i) {
-        printf("%-*s", 10, idTable[i].name);
-        printf("%-*d", 10, idTable[i].cls);
-        printf("%-*d", 10, idTable[i].typ);
-        printf("%-*d", 10, idTable[i].addr);
-        printf("%-*d", 10, idTable[i].length);
-        printf("%-*d", 10, idTable[i].level);
+        printf("%-*s", 15, idTable[i].name);
+        printf("%-*d", 15, idTable[i].cls);
+        printf("%-*d", 15, idTable[i].typ);
+        printf("%-*d", 15, idTable[i].addr);
+        printf("%-*d", 15, idTable[i].length);
+        printf("%-*d", 15, idTable[i].level);
         printf("\n");
     }
-    cout << "----------------------Static Table---------------------" << endl;
-    cout << "Name      "
-         << "Kind      "
-         << "Type      "
-         << "Address   "
-         << "Length    "
-         << "Level     "
+    cout << "------------------------------------Static Table-----------------------------------" << endl;
+    cout << "Name           "
+         << "Kind           "
+         << "Type           "
+         << "Address        "
+         << "Length         "
+         << "Level          "
          << endl;
     for (int i = 0; i < staticTable.size(); ++i) {
-        printf("%-*s", 10, staticTable[i].name);
-        printf("%-*d", 10, staticTable[i].cls);
-        printf("%-*d", 10, staticTable[i].typ);
-        printf("%-*d", 10, staticTable[i].addr);
-        printf("%-*d", 10, staticTable[i].length);
-        printf("%-*d", 10, staticTable[i].level);
+        printf("%-*s", 15, staticTable[i].name);
+        printf("%-*d", 15, staticTable[i].cls);
+        printf("%-*d", 15, staticTable[i].typ);
+        printf("%-*d", 15, staticTable[i].addr);
+        printf("%-*d", 15, staticTable[i].length);
+        printf("%-*d", 15, staticTable[i].level);
         printf("\n");
     }
 }

@@ -90,6 +90,7 @@ void insertInfix(string ioperator, string operand1, string operand2, string oper
 
 void outputInfixes() {
     infixFile << outputBuff;
+    infixFile.close();
 }
 
 string createTempVar() {

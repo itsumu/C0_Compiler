@@ -10,8 +10,10 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <set>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 #include "tools.h"
 
 using std::cin;
@@ -28,7 +30,7 @@ const int maxIdentLength = 100;
 const int maxLineLength = 100;
 const int keywordCount = 14;
 const int maxDigit = 15;
-const int maxInt = 32767; // 2 ^ 15-1
+const int maxInt = 100000000;
 
 // Types
 typedef char alpha[maxIdentLength + 1]; // Alphabet letter should be restricted to maxIdentLength
@@ -110,7 +112,7 @@ extern symbol sy;
 extern int inum;
 extern char str[];
 extern int level;
-extern fstream inputFile, infixFile, mipsFile;
+extern fstream inputFile, infixFile;
 
 // Lengths for global variables
 extern int lineLength; // Currently reading line length
@@ -139,6 +141,7 @@ void insymbol(); // Read one symbol, sy stores symbol type, inum stores contents
 
     // Table actions
 void insertTable(kind cls, type typ, const char name[], int length, int level, int addr);
+void insertStatic(string function, kind cls, type typ, const char name[], int length, int level);
 void popElement();
 void popLocals();
 int lookUp(const char *name); // Return index of identifier in table
@@ -188,27 +191,13 @@ void insertInfix(string ioperator, string operand1, string operand2, string oper
 void outputInfixes();
 string createTempVar();
 
+// Infixes optimization
+void optimizeInfixes();
+
 // Target code generations
 void mipsProgram(string mipsFileName);
-void mipsDef();
-void mipsAssign();
-void mipsAdd();
-void mipsSub();
-void mipsMul();
-void mipsDiv();
-void mipsSeq();
-void mipsSne();
-void mipsSlt();
-void mipsSle();
-void mipsSgt();
-void mipsSge();
-void mipsBeq();
-void mipsBne();
-void mipsJ(string label);
-void mipsJal();
-void mipsJr();
-void mipsPrint();
-void mipsScan();
 
+// Mips codes optimization
+void optMipsProgram(string mipsFileName);
 
 #endif //C0_COMPILER_MAIN_H
